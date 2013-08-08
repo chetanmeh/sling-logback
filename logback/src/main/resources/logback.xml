@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+    
+    http://www.apache.org/licenses/LICENSE-2.0
+    
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+<configuration>
+
+  <appender name="org.apache.sling.commons.log.LogManager" class="ch.qos.logback.core.ConsoleAppender">
+    <!-- encoders are assigned the type
+         ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
+    <encoder>
+    <!--
+        "{0,date,dd.MM.yyyy HH:mm:ss.SSS} *{4}* [{2}] {3} {5}";
+    
+    Message Pattern for formatting the log messages. \
+ This is a java.text.MessageFormat pattern supporting up to six arguments: \
+ {0} The timestamp of type java.util.Date, {1} the log marker, {2} the name \
+ of the current thread, {3} the name of the logger, {4} the debug level and \
+ {5} the actual debug message. If the log call includes a Throwable, the \
+ stacktrace is just appended to the message.
+    
+     -->
+      <pattern>%d{dd.MM.yyyy HH:mm:ss.SSS} *%level* [%thread] %logger %message%n</pattern>
+    </encoder>
+  </appender>
+
+<!-- 
+  <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+    <file>${sling.home}/myApp.log</file>
+
+    <encoder>
+      <pattern>%date %level [%thread] %logger{10} [%file:%line] %msg%n</pattern>
+    </encoder>
+  </appender>
+-->
+
+  <root level="info">
+    <appender-ref ref="org.apache.sling.commons.log.LogManager" />
+  </root>
+</configuration>
