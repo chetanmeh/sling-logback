@@ -18,7 +18,6 @@
  */
 package org.apache.sling.extensions.logback.internal.config;
 
-import org.apache.sling.commons.log.internal.config.logback.LogConfigManager;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.ServiceFactory;
 import org.osgi.framework.ServiceRegistration;

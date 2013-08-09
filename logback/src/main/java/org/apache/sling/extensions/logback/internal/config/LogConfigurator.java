@@ -18,7 +18,6 @@
  */
 package org.apache.sling.extensions.logback.internal.config;
 
-import org.apache.sling.commons.log.internal.config.logback.LogConfigManager;
 
 public class LogConfigurator {
 

@@ -20,7 +20,6 @@ package org.apache.sling.extensions.logback.internal.config;
 
 import java.util.Dictionary;
 
-import org.apache.sling.commons.log.internal.config.logback.LogConfigManager;
 import org.osgi.service.cm.ManagedServiceFactory;
 
 class LoggerManagedServiceFactory extends LogConfigurator implements

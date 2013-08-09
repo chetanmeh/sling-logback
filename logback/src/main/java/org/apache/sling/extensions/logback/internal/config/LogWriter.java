@@ -35,7 +35,6 @@ import ch.qos.logback.core.rolling.FixedWindowRollingPolicy;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
 import ch.qos.logback.core.rolling.TimeBasedRollingPolicy;
-import org.apache.sling.commons.log.internal.LogbackLogManager;
 
 /**
  * The <code>LogWriter</code> class encapsulates the OSGi configuration for a
@@ -96,7 +95,7 @@ public class LogWriter {
 
     public void setLogNumber(int logNumber) {
         if (logNumber < 0) {
-            logNumber = LogbackLogManager.LOG_FILE_NUMBER_DEFAULT;
+            logNumber = LogConfigManager.LOG_FILE_NUMBER_DEFAULT;
         }
 
         this.logNumber = logNumber;
@@ -108,7 +107,7 @@ public class LogWriter {
 
     public void setLogRotation(String logRotation) {
         if (logRotation == null || logRotation.length() == 0) {
-            logRotation = LogbackLogManager.LOG_FILE_SIZE_DEFAULT;
+            logRotation = LogConfigManager.LOG_FILE_SIZE_DEFAULT;
         }
 
         this.logRotation = logRotation;
