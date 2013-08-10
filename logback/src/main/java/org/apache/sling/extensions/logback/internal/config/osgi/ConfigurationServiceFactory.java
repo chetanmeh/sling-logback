@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.sling.extensions.logback.internal.config;
+package org.apache.sling.extensions.logback.internal.config.osgi;
 
+import org.apache.sling.extensions.logback.internal.config.LogConfigManager;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.ServiceFactory;
 import org.osgi.framework.ServiceRegistration;

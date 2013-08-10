@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.sling.extensions.logback.internal.config;
+package org.apache.sling.extensions.logback.internal.config.osgi;
 
 import java.util.Dictionary;
 
@@ -44,8 +44,8 @@ class LoggerManagedServiceFactory extends LogConfigurator implements
             getLogConfigManager().updateLoggerConfiguration(pid, null);
         } catch (ConfigurationException ce) {
             // not expected
-            LogConfigManager.internalFailure(
-                "Unexpected Configuration Problem", ce);
+            getLogConfigManager().internalFailure(
+                    "Unexpected Configuration Problem", ce);
         }
     }
 }

@@ -24,26 +24,22 @@ import ch.qos.logback.classic.Level;
 
 public class LogConfig {
 
-    private String configPid;
+    private final String configPid;
 
-    private Set<String> categories;
+    private final Set<String> categories;
 
-    private Level logLevel;
+    private final Level logLevel;
 
-    private String pattern;
+    private final String pattern;
 
-    private Set<String> logWriterNames;
+    private final String logWriterName;
 
-    LogConfig(String configPid, final String pattern, Set<String> categories, Level logLevel, Set<String> logWriterNames) {
+    LogConfig(String configPid, final String pattern, Set<String> categories, Level logLevel, String logWriterName) {
         this.configPid = configPid;
-        this.configure(pattern, categories, logLevel, logWriterNames);
-    }
-
-    public void configure(final String pattern, Set<String> categories, Level logLevel, Set<String> logWriterNames) {
         this.pattern = pattern;
         this.categories = categories;
         this.logLevel = logLevel;
-        this.logWriterNames = logWriterNames;
+        this.logWriterName = logWriterName;
     }
 
     public String getConfigPid() {
@@ -62,7 +58,7 @@ public class LogConfig {
         return pattern;
     }
 
-    public Set<String> getLogWriterNames() {
-        return logWriterNames;
+    public String getLogWriterName() {
+        return logWriterName;
     }
 }

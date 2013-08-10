@@ -16,23 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.sling.extensions.logback.internal.config;
+package org.apache.sling.extensions.logback.internal.config.osgi;
 
-import java.util.Dictionary;
+public class ConfigurationException extends Exception {
 
-import org.osgi.service.cm.ManagedService;
+    private static final long serialVersionUID = -9213226340780391070L;
 
-class GlobalConfigurator extends LogConfigurator implements ManagedService {
+    private final String property;
 
-    @SuppressWarnings("unchecked")
-    public void updated(Dictionary properties)
-            throws org.osgi.service.cm.ConfigurationException { // unchecked
-        try {
-            getLogConfigManager().updateGlobalConfiguration(properties);
-        } catch (ConfigurationException ce) {
-            throw new org.osgi.service.cm.ConfigurationException(
-                ce.getProperty(), ce.getReason(), ce);
-        }
+    private final String reason;
+
+    public ConfigurationException(final String property, final String reason) {
+        this(property, reason, null);
     }
 
+    public ConfigurationException(final String property, final String reason,
+            final Throwable cause) {
+        super("", cause);
+        this.property = property;
+        this.reason = reason;
+    }
+
+    public String getProperty() {
+        return property;
+    }
+
+    public String getReason() {
+        return reason;
+    }
 }

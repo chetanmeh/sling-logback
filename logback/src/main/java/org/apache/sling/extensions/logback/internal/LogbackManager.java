@@ -12,6 +12,7 @@ import ch.qos.logback.core.status.StatusListenerAsList;
 import ch.qos.logback.core.status.StatusManager;
 import ch.qos.logback.core.util.ContextUtil;
 import ch.qos.logback.core.util.StatusPrinter;
+import org.apache.sling.extensions.logback.internal.config.LogConfigManager;
 import org.osgi.framework.BundleContext;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.InputSource;
@@ -21,9 +22,10 @@ public class LogbackManager {
     private static final String CONFIG_FILE_PROPERTY = PREFIX + "." + ContextInitializer.CONFIG_FILE_PROPERTY;
     private final LoggerContext loggerContext;
     private final ContextUtil contextUtil;
-    private final String homeDir;
+    private final String rootDir;
     private final BundleContext bundleContext;
     private final String contextName = "sling";
+    private final LogConfigManager logConfigManager;
 
     private final boolean debug = true;
 
@@ -31,12 +33,14 @@ public class LogbackManager {
         this.loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
         this.contextUtil = new ContextUtil(loggerContext);
         this.bundleContext = bundleContext;
-        this.homeDir = bundleContext.getProperty("sling.home");
+        this.rootDir = bundleContext.getProperty("sling.home");
 
         //TODO Make it configurable
         this.loggerContext.setName(contextName);
 
         configure(bundleContext);
+
+        this.logConfigManager = new LogConfigManager(loggerContext,bundleContext, rootDir);
     }
 
     private void configure(BundleContext bundleContext) {
@@ -77,6 +81,7 @@ public class LogbackManager {
     }
 
     public void shutdown() {
+        logConfigManager.close();
         loggerContext.stop();
     }
 
@@ -97,7 +102,7 @@ public class LogbackManager {
         @Override
         protected void buildInterpreter() {
             super.buildInterpreter();
-            interpreter.getInterpretationContext().addSubstitutionProperty("sling.home", homeDir);
+            interpreter.getInterpretationContext().addSubstitutionProperty("sling.home", rootDir);
         }
     }
 
@@ -130,7 +135,7 @@ public class LogbackManager {
             String fileName = this.fileName.trim();
             File file = new File(fileName);
             if(!file.isAbsolute()){
-                file = new File(homeDir,fileName);
+                file = new File(rootDir,fileName);
             }
             final String path = file.getAbsolutePath();
             contextUtil.addInfo("Configuring from "+path);

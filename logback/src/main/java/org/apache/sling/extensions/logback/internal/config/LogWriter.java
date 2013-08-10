@@ -18,10 +18,6 @@
  */
 package org.apache.sling.extensions.logback.internal.config;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -60,79 +56,47 @@ public class LogWriter {
      * configured. If this is <code>null</code> this instance is an implicitly
      * created instance which is not tied to any configuration.
      */
-    private String configurationPID;
+    private final String configurationPID;
 
-    private String fileName;
+    private final String fileName;
 
-    private int logNumber;
+    private final int logNumber;
 
-    private String logRotation;
+    private final String logRotation;
 
-    private Map<String, Appender<ILoggingEvent>> appenders;
+    public LogWriter(String configurationPID, String fileName, int logNumber, String logRotation) {
+        if(fileName == null){
+            fileName = "";
+        }
 
-    LogWriter() {
-    }
+        if (logNumber < 0) {
+            logNumber = LogConfigManager.LOG_FILE_NUMBER_DEFAULT;
+        }
 
-    public void setConfigurationPID(String configurationPID) {
+        if (logRotation == null || logRotation.length() == 0) {
+            logRotation = LogConfigManager.LOG_FILE_SIZE_DEFAULT;
+        }
+
         this.configurationPID = configurationPID;
+        this.fileName = fileName;
+        this.logNumber = logNumber;
+        this.logRotation = logRotation;
     }
 
     public String getConfigurationPID() {
         return configurationPID;
     }
 
-    public void setFileName(String fileName) {
-        if (fileName == null) {
-            fileName = "";
-        }
-
-        this.fileName = fileName;
-    }
-
     public String getFileName() {
         return fileName;
-    }
-
-    public void setLogNumber(int logNumber) {
-        if (logNumber < 0) {
-            logNumber = LogConfigManager.LOG_FILE_NUMBER_DEFAULT;
-        }
-
-        this.logNumber = logNumber;
     }
 
     public int getLogNumber() {
         return logNumber;
     }
 
-    public void setLogRotation(String logRotation) {
-        if (logRotation == null || logRotation.length() == 0) {
-            logRotation = LogConfigManager.LOG_FILE_SIZE_DEFAULT;
-        }
-
-        this.logRotation = logRotation;
-    }
-
     public String getLogRotation() {
         return logRotation;
-    }
-
-    public void close() {
-        if (this.appenders != null) {
-            for (Iterator<Appender<ILoggingEvent>> ai = this.appenders.values().iterator(); ai.hasNext();) {
-                ai.next().stop();
-                ai.remove();
-            }
-            this.appenders = null;
-        }
-    }
-
-    public Collection<Appender<ILoggingEvent>> getAppenders() {
-        if (appenders != null) {
-            return this.appenders.values();
-        }
-
-        return Collections.emptySet();
     }
 
     public Appender<ILoggingEvent> createAppender(final Context context, final Encoder<ILoggingEvent> encoder) {
