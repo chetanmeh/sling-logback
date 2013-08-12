@@ -3,6 +3,13 @@ Sling Logback Extension
 
 Logback based logger for Sling
 
+TODO
+----
+
+* Support for providing LogBack config via ConfigurationAdmin
+* Support for providing LogBack config as fragments
+* Support for registering Appenders via Whiteboard pattern
+
 
 References
 ----------
