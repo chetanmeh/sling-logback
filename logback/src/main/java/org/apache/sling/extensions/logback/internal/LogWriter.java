@@ -83,6 +83,10 @@ public class LogWriter {
         this.logRotation = logRotation;
     }
 
+    public LogWriter(String fileName, int logNumber, String logRotation) {
+        this(null,fileName,logNumber,logRotation);
+    }
+
     public String getConfigurationPID() {
         return configurationPID;
     }
@@ -97,6 +101,10 @@ public class LogWriter {
 
     public String getLogRotation() {
         return logRotation;
+    }
+
+    public boolean isImplicit(){
+        return configurationPID == null;
     }
 
     public Appender<ILoggingEvent> createAppender(final Context context, final Encoder<ILoggingEvent> encoder) {

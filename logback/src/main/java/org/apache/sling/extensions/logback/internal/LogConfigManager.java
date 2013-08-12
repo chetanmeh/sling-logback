@@ -21,22 +21,26 @@ package org.apache.sling.extensions.logback.internal;
 import java.io.File;
 import java.util.Collection;
 import java.util.Dictionary;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.Appender;
+import ch.qos.logback.core.Layout;
 import ch.qos.logback.core.util.ContextUtil;
 import org.apache.sling.extensions.logback.internal.config.ConfigAdminSupport;
 import org.apache.sling.extensions.logback.internal.config.ConfigurationException;
+import org.apache.sling.extensions.logback.internal.util.LoggerSpecificEncoder;
 import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
 
-public class LogConfigManager {
+public class LogConfigManager implements LogbackResetListener{
 
     public static final String LOG_LEVEL = "org.apache.sling.commons.log.level";
 
@@ -108,6 +112,8 @@ public class LogConfigManager {
 
     private final ConfigAdminSupport configAdminSupport;
 
+    private final LogbackManager logbackManager;
+
     /**
      * Logs a message an optional stack trace to error output. This method is
      * used by the logging system in case of errors writing to the correct
@@ -125,15 +131,14 @@ public class LogConfigManager {
      * Sets up this log configuration manager by creating the default writers
      * and logger configuration
      */
-    public LogConfigManager(LoggerContext loggerContext, BundleContext bundleContext, String rootDir) {
+    public LogConfigManager(LoggerContext loggerContext, BundleContext bundleContext, String rootDir, LogbackManager logbackManager) {
+        this.logbackManager = logbackManager;
         this.loggerContext = loggerContext;
         contextUtil = new ContextUtil(loggerContext);
         writerByPid = new ConcurrentHashMap<String, LogWriter>();
         writerByFileName = new ConcurrentHashMap<String, LogWriter>();
-//        appenderByKey = new ConcurrentHashMap<AppenderKey, Appender<ILoggingEvent>>();
         configByPid = new ConcurrentHashMap<String, LogConfig>();
         configByCategory = new ConcurrentHashMap<String, LogConfig>();
-//        loggersByCategory = new ConcurrentHashMap<String, SoftReference<SlingLogger>>();
 
         this.rootDir = new File(rootDir);
         setDefaultConfiguration(getBundleConfiguration(bundleContext));
@@ -175,60 +180,47 @@ public class LogConfigManager {
 
     // ---------- SlingLogPanel support
 
-    /**
-     * Return configured {@link LogConfig} instances as an iterator.
-     */
-    Iterator<LogConfig> getSlingLoggerConfigs() {
-        return configByPid.values().iterator();
+    LogWriter getLogWriter(String logWriterName) {
+        LogWriter lw = writerByFileName.get(logWriterName);
+        if(lw == null){
+            lw = createImplicitWriter(logWriterName);
+        }
+        return lw;
     }
 
-    /**
-     * Return configured and implicit {@link LogWriter} instances as
-     * an iterator.
-     */
-    Iterator<LogWriter> getSlingLoggerWriters() {
-        return internalGetSlingLoggerWriters().iterator();
+    LoggerContext getLoggerContext(){
+        return loggerContext;
     }
 
-    /**
-     * Returns the number of logger configurations active in the system
-     */
-    int getNumSlingLoggerConfigs() {
-        return configByPid.size();
-    }
 
-    /**
-     * Returns the number of logger writers active in the system
-     */
-    int getNumSlingLogWriters() {
-        return internalGetSlingLoggerWriters().size();
-    }
+    // ---------- Logback reset listener
 
-    /**
-     * Returns the number of currently user logger categories
-     */
-    int getNumLoggers() {
-        return this.loggerContext.getLoggerList().size();
-    }
+    public void onReset(LoggerContext context) {
+        Map<String,Appender> appendersByName = new HashMap<String, Appender>();
+        Map<Appender,LoggerSpecificEncoder> encoders = new HashMap<Appender, LoggerSpecificEncoder>();
+        for(LogConfig config : getLogConfigs()){
+            Appender appender = null;
+            if(config.isAppenderDefined()){
+                LogWriter lw = config.getLogWriter();
+                appender = appendersByName.get(lw.getFileName());
+                if(appender == null){
+                    LoggerSpecificEncoder encoder = new LoggerSpecificEncoder(getDefaultLayout());
+                    appender = lw.createAppender(loggerContext,encoder);
+                    encoders.put(appender,encoder);
+                }
+                encoders.get(appender).addLogConfig(config);
+            }
 
-    /**
-     * Internal method returns the collection of explicitly configured and
-     * implicitly defined logger writers.
-     */
-    private Collection<LogWriter> internalGetSlingLoggerWriters() {
-        // configured writers
-        Collection<LogWriter> writers = new HashSet<LogWriter>(
-            writerByPid.values());
+            for(String category : config.getCategories()){
+                ch.qos.logback.classic.Logger logger = loggerContext.getLogger(category);
+                logger.setLevel(config.getLogLevel());
 
-        // add implicit writers
-        for (LogWriter slw : writerByFileName.values()) {
-            if (slw.getConfigurationPID() == null) {
-                writers.add(slw);
+                logger.addAppender(appender);
             }
         }
-
-        return writers;
     }
+
+
 
     // ---------- Configuration support
 
@@ -353,6 +345,8 @@ public class LogConfigManager {
                 writerByFileName.remove(logWriter.getFileName());
             }
         }
+
+        logbackManager.configChanged();
     }
 
     /**
@@ -441,7 +435,7 @@ public class LogConfigManager {
             //control the log level
 
             // create or modify existing configuration object
-            LogConfig newConfig = new LogConfig(pid, pattern, categories, logLevel, file);
+            LogConfig newConfig = new LogConfig(this, pattern, categories, logLevel, file, pid);
             LogConfig oldConfig = configByPid.get(pid);
             if(oldConfig != null){
                 configByCategory.keySet().removeAll(oldConfig.getCategories());
@@ -467,7 +461,7 @@ public class LogConfigManager {
             }
 
         }
-
+        logbackManager.configChanged();
     }
 
     // ---------- ManagedService interface -------------------------------------
@@ -495,6 +489,30 @@ public class LogConfigManager {
 
     // ---------- Internal helpers ---------------------------------------------
 
+    private LogWriter createImplicitWriter(String logWriterName) {
+        LogWriter defaultWriter = getDefaultWriter();
+        if(defaultWriter == null){
+            throw new IllegalStateException("Default logger configuration must have been configured by now");
+        }
+        return new LogWriter(logWriterName,defaultWriter.getLogNumber(),defaultWriter.getLogRotation());
+    }
+
+    private LogWriter getDefaultWriter() {
+        return writerByPid.get(LogConfigManager.PID);
+    }
+
+    private LogConfig getDefaultConfig() {
+        return configByPid.get(LogConfigManager.PID);
+    }
+
+    private Layout<ILoggingEvent> getDefaultLayout(){
+        return getDefaultConfig().createLayout();
+    }
+
+    private Iterable<LogConfig> getLogConfigs() {
+        return configByPid.values();
+    }
+
     /**
      * Returns the <code>logFileName</code> argument converted into an
      * absolute path name. If <code>logFileName</code> is already absolute it
@@ -521,35 +539,6 @@ public class LogConfigManager {
 
         // return the correct log file name
         return logFileName;
-    }
-
-
-    /**
-     * Returns a {@link SlingLoggerConfig} instance applicable to the given
-     * <code>logger</code> name. This is the instance applicable to a longest
-     * match log. If no such instance exists, the default logger configuration
-     * is returned.
-     */
-    private LogConfig getLoggerConfig(String logger) {
-        for (;;) {
-            LogConfig config = configByCategory.get(logger);
-            if (config != null) {
-                return config;
-            }
-
-            if (logger.length() == 0) {
-                break;
-            }
-
-            int dot = logger.lastIndexOf('.');
-            if (dot < 0) {
-                logger = ROOT;
-            } else {
-                logger = logger.substring(0, dot);
-            }
-        }
-
-        return defaultLoggerConfig;
     }
 
     /**
@@ -610,4 +599,6 @@ public class LogConfigManager {
         // return those names
         return loggerNames;
     }
+
+
 }

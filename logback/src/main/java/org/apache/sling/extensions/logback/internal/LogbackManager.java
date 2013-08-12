@@ -2,6 +2,8 @@ package org.apache.sling.extensions.logback.internal;
 
 import java.io.File;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -9,6 +11,7 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.classic.spi.LoggerContextListener;
 import ch.qos.logback.classic.util.ContextInitializer;
+import ch.qos.logback.core.CoreConstants;
 import ch.qos.logback.core.joran.spi.ConfigurationWatchList;
 import ch.qos.logback.core.joran.spi.JoranException;
 import ch.qos.logback.core.status.StatusListener;
@@ -26,12 +29,12 @@ public class LogbackManager {
     private final LoggerContext loggerContext;
     private final ContextUtil contextUtil;
     private final String rootDir;
-    private final BundleContext bundleContext;
     private final String contextName = "sling";
     private final LogConfigManager logConfigManager;
 
-    private final OsgiAwareConfigurationWatchList configurationWatchList =
-            new OsgiAwareConfigurationWatchList();
+    private volatile boolean configChanged;
+
+    private final List<LogbackResetListener> resetListeners = new ArrayList<LogbackResetListener>();
 
     /**
      * Acts as a bridge between Logback and OSGi
@@ -43,17 +46,16 @@ public class LogbackManager {
     public LogbackManager(BundleContext bundleContext) {
         this.loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
         this.contextUtil = new ContextUtil(loggerContext);
-        this.bundleContext = bundleContext;
         this.rootDir = bundleContext.getProperty("sling.home");
 
         //TODO Make it configurable
         this.loggerContext.setName(contextName);
+        this.logConfigManager = new LogConfigManager(loggerContext,bundleContext, rootDir,this);
+        this.loggerContext.addListener(osgiIntegrationListener);
+
+        resetListeners.add(logConfigManager);
 
         configure(bundleContext);
-
-        this.logConfigManager = new LogConfigManager(loggerContext,bundleContext, rootDir);
-
-        this.loggerContext.addListener(osgiIntegrationListener);
     }
 
     private void configure(BundleContext bundleContext) {
@@ -102,7 +104,7 @@ public class LogbackManager {
     }
 
     public void configChanged(){
-        this.configurationWatchList.configChanged();
+        configChanged = true;
     }
 
     //~-----------------------------Internal Utility Methods
@@ -132,6 +134,18 @@ public class LogbackManager {
         }
 
         public void onReset(LoggerContext context) {
+            addCustomConfigWatchList(context);
+
+            for(LogbackResetListener l : resetListeners){
+                l.onReset(context);
+            }
+
+        }
+
+        private void addCustomConfigWatchList(LoggerContext context) {
+            ConfigurationWatchList cwl = new OsgiAwareConfigurationWatchList();
+            cwl.setContext(context);
+            context.putObject(CoreConstants.CONFIGURATION_WATCH_LIST, cwl);
         }
 
         public void onStop(LoggerContext context) {
@@ -139,13 +153,12 @@ public class LogbackManager {
 
         public void onLevelChange(Logger logger, Level level) {
         }
+
     }
 
     //--------------------------------ConfigurationWatchList
 
     private class OsgiAwareConfigurationWatchList extends ConfigurationWatchList {
-        private volatile boolean configChanged;
-
         @Override
         public boolean changeDetected() {
             if(configChanged){
@@ -154,10 +167,6 @@ public class LogbackManager {
                 return true;
             }
             return super.changeDetected();
-        }
-
-        public void configChanged(){
-            this.configChanged = true;
         }
     }
 

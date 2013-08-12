@@ -18,9 +18,12 @@
  */
 package org.apache.sling.extensions.logback.internal;
 
+import java.text.MessageFormat;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.PatternLayout;
 
 public class LogConfig {
 
@@ -34,7 +37,11 @@ public class LogConfig {
 
     private final String logWriterName;
 
-    LogConfig(String configPid, final String pattern, Set<String> categories, Level logLevel, String logWriterName) {
+    private final LogConfigManager logConfigManager;
+
+    LogConfig(LogConfigManager logConfigManager, final String pattern,
+              Set<String> categories, Level logLevel, String logWriterName, String configPid) {
+        this.logConfigManager = logConfigManager;
         this.configPid = configPid;
         this.pattern = pattern;
         this.categories = categories;
@@ -60,5 +67,28 @@ public class LogConfig {
 
     public String getLogWriterName() {
         return logWriterName;
+    }
+
+    public boolean isAppenderDefined(){
+        return logWriterName != null;
+    }
+
+    public LogWriter getLogWriter(){
+        return logConfigManager.getLogWriter(logWriterName);
+    }
+
+    public PatternLayout createLayout(){
+        Pattern date = Pattern.compile("\\{0,date,(.+)\\}");
+        String logBackPattern = date.matcher(getPattern()).replaceAll("d{$1}");
+
+        logBackPattern = MessageFormat.format(logBackPattern, "zero", "%marker", "%thread", "%logger", "%level",
+                "%message") + "%n";
+
+        PatternLayout pl = new PatternLayout();
+        pl.setPattern(logBackPattern);
+        pl.setOutputPatternAsHeader(false);
+        pl.setContext(logConfigManager.getLoggerContext());
+        pl.start();
+        return pl;
     }
 }
