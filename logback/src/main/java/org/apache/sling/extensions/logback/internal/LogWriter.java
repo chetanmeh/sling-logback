@@ -182,7 +182,7 @@ public class LogWriter {
 
         appender.setContext(context);
         appender.setEncoder(encoder);
-
+        appender.start();
         return appender;
     }
 
