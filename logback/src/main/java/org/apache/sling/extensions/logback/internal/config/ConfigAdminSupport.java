@@ -17,12 +17,12 @@
  * under the License.
  */
 
-package org.apache.sling.extensions.logback.internal.config.osgi;
+package org.apache.sling.extensions.logback.internal.config;
 
 import java.util.Dictionary;
 import java.util.Hashtable;
 
-import org.apache.sling.extensions.logback.internal.config.LogConfigManager;
+import org.apache.sling.extensions.logback.internal.LogConfigManager;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;

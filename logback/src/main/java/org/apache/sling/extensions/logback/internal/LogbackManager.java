@@ -16,7 +16,6 @@ import ch.qos.logback.core.status.StatusListenerAsList;
 import ch.qos.logback.core.status.StatusManager;
 import ch.qos.logback.core.util.ContextUtil;
 import ch.qos.logback.core.util.StatusPrinter;
-import org.apache.sling.extensions.logback.internal.config.LogConfigManager;
 import org.osgi.framework.BundleContext;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.InputSource;

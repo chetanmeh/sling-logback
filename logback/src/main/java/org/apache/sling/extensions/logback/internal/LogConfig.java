@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.sling.extensions.logback.internal.config;
+package org.apache.sling.extensions.logback.internal;
 
 import java.util.Set;
 

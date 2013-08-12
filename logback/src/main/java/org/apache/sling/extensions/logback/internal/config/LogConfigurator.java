@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.sling.extensions.logback.internal.config.osgi;
+package org.apache.sling.extensions.logback.internal.config;
 
 
-import org.apache.sling.extensions.logback.internal.config.LogConfigManager;
+import org.apache.sling.extensions.logback.internal.LogConfigManager;
 
 public class LogConfigurator {
 

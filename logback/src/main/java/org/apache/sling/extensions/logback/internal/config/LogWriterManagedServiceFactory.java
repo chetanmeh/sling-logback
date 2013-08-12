@@ -16,32 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.sling.extensions.logback.internal.config.osgi;
+package org.apache.sling.extensions.logback.internal.config;
 
 import java.util.Dictionary;
 
 import org.osgi.service.cm.ManagedServiceFactory;
 
-class LoggerManagedServiceFactory extends LogConfigurator implements
+class LogWriterManagedServiceFactory extends LogConfigurator implements
         ManagedServiceFactory {
 
     public String getName() {
-        return "Logger configurator";
+        return "LogWriter configurator";
     }
 
-    public void updated(String pid, @SuppressWarnings("rawtypes") Dictionary configuration)
+    @SuppressWarnings("unchecked")
+    public void updated(String pid, Dictionary configuration)
             throws org.osgi.service.cm.ConfigurationException {
         try {
-            getLogConfigManager().updateLoggerConfiguration(pid, configuration);
+            getLogConfigManager().updateLogWriter(pid, configuration);
         } catch (ConfigurationException ce) {
             throw new org.osgi.service.cm.ConfigurationException(
                 ce.getProperty(), ce.getReason(), ce);
         }
+
     }
 
     public void deleted(String pid) {
         try {
-            getLogConfigManager().updateLoggerConfiguration(pid, null);
+            getLogConfigManager().updateLogWriter(pid, null);
         } catch (ConfigurationException ce) {
             // not expected
             getLogConfigManager().internalFailure(

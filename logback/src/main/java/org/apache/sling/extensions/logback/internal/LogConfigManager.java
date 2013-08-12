@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.sling.extensions.logback.internal.config;
+package org.apache.sling.extensions.logback.internal;
 
 import java.io.File;
 import java.util.Collection;
@@ -31,8 +31,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.core.util.ContextUtil;
-import org.apache.sling.extensions.logback.internal.config.osgi.ConfigAdminSupport;
-import org.apache.sling.extensions.logback.internal.config.osgi.ConfigurationException;
+import org.apache.sling.extensions.logback.internal.config.ConfigAdminSupport;
+import org.apache.sling.extensions.logback.internal.config.ConfigurationException;
 import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
 
