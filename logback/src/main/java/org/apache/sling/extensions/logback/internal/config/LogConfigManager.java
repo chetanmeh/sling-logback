@@ -437,7 +437,8 @@ public class LogConfigManager {
                 pattern = LogConfigManager.LOG_PATTERN_DEFAULT;
             }
 
-            //TODO: Verify fileName
+            //TODO: Verify fileName or it can be null meaning that user just wants to
+            //control the log level
 
             // create or modify existing configuration object
             LogConfig newConfig = new LogConfig(pid, pattern, categories, logLevel, file);
