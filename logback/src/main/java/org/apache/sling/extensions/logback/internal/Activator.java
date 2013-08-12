@@ -27,6 +27,8 @@ public class Activator implements BundleActivator {
 
     public void start(BundleContext context) throws Exception {
         logManager = new LogbackManager(context);
+
+        //TODO JUL Integration
     }
 
     public void stop(BundleContext context) throws Exception {
