@@ -47,13 +47,13 @@ public class ConfigAdminSupport {
         loggingConfigurable = context.registerService(
                 "org.osgi.service.cm.ManagedService",
                 new ConfigurationServiceFactory(logConfigManager,
-                        "org.apache.sling.commons.log.internal.config.GlobalConfigurator"),
+                        "org.apache.sling.extensions.logback.internal.config.GlobalConfigurator"),
                 props);
 
         // register for log writer configuration
         ConfigurationServiceFactory msf = new ConfigurationServiceFactory(
                 logConfigManager,
-                "org.apache.sling.commons.log.internal.config.LogWriterManagedServiceFactory");
+                "org.apache.sling.extensions.logback.internal.config.LogWriterManagedServiceFactory");
         props.put(Constants.SERVICE_PID, LogConfigManager.FACTORY_PID_WRITERS);
         props.put(Constants.SERVICE_DESCRIPTION, "LogWriter configurator");
         writerConfigurer = context.registerService(
@@ -62,7 +62,7 @@ public class ConfigAdminSupport {
         // register for log configuration
         msf = new ConfigurationServiceFactory(
                 logConfigManager,
-                "org.apache.sling.commons.log.internal.config.LoggerManagedServiceFactory");
+                "org.apache.sling.extensions.logback.internal.config.LoggerManagedServiceFactory");
         props.put(Constants.SERVICE_PID, LogConfigManager.FACTORY_PID_CONFIGS);
         props.put(Constants.SERVICE_DESCRIPTION, "Logger configurator");
         configConfigurer = context.registerService(
