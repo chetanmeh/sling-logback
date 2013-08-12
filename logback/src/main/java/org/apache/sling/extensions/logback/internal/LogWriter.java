@@ -169,7 +169,7 @@ public class LogWriter {
                 rollingAppender.setRollingPolicy(pol);
             } else {
                 TimeBasedRollingPolicy<ILoggingEvent> policy = new TimeBasedRollingPolicy<ILoggingEvent>();
-                policy.setFileNamePattern(getFileName() + getLogRotation());
+                policy.setFileNamePattern(createFileNamePattern(getFileName(),getLogRotation()));
                 policy.setMaxHistory(getLogNumber());
                 policy.setContext(context);
                 policy.setParent(rollingAppender);
@@ -184,5 +184,15 @@ public class LogWriter {
         appender.setEncoder(encoder);
 
         return appender;
+    }
+
+    public static String createFileNamePattern(String fileName,String pattern){
+        //Default file name pattern "'.'yyyy-MM-dd"
+        //http://sling.apache.org/site/logging.html#Logging-ScheduledRotation
+        if(pattern.startsWith("'.'")){
+            pattern = ".%d{" +pattern.substring(3) + "}";  //3 =? '.' length
+        }
+        return fileName+pattern;
+
     }
 }

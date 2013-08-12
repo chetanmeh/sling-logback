@@ -20,12 +20,14 @@ package org.apache.sling.extensions.logback.internal;
 
 import java.text.MessageFormat;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.PatternLayout;
 
 public class LogConfig {
+    private static final String[] LEGACY_MARKERS = {"{0}","{1}","{2}","{3}","{4}","{5}"};
 
     private final String configPid;
 
@@ -78,11 +80,28 @@ public class LogConfig {
     }
 
     public PatternLayout createLayout(){
-        Pattern date = Pattern.compile("\\{0,date,(.+)\\}");
-        String logBackPattern = date.matcher(getPattern()).replaceAll("d{$1}");
+        Pattern date = Pattern.compile("\\{0,date,(.+?)\\}");
+        Matcher m = date.matcher(pattern);
+        String logBackPattern = pattern;
 
-        logBackPattern = MessageFormat.format(logBackPattern, "zero", "%marker", "%thread", "%logger", "%level",
+        if(m.matches()){
+            //If legacy pattern then transform the date format
+            logBackPattern = m.replaceAll("%d'{'$1'}'");
+        }
+
+        boolean legacyPattern = false;
+        for(String marker : LEGACY_MARKERS){
+            if(logBackPattern.indexOf(marker) != -1){
+                legacyPattern = true;
+                break;
+            }
+        }
+
+        if(legacyPattern){
+            //Convert patterns like %d{dd.MM.yyyy HH:mm:ss.SSS} *%level* [%thread] %logger %msg%n
+            logBackPattern = MessageFormat.format(logBackPattern, "zero", "%marker", "%thread", "%logger", "%level",
                 "%message") + "%n";
+        }
 
         PatternLayout pl = new PatternLayout();
         pl.setPattern(logBackPattern);

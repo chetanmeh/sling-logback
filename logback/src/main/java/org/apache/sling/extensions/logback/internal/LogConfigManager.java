@@ -90,20 +90,6 @@ public class LogConfigManager implements LogbackResetListener{
     // map of log configurations by the categories they are configured with
     private final Map<String, LogConfig> configByCategory;
 
-    // map of all loggers supplied by getLogger(String) by their names. Each
-    // entry is in fact a SoftReference to the actual logger, such that the
-    // loggers may be cleaned up if no used any more.
-    // There is no ReferenceQueue handling currently for removed loggers
-//    private final Map<String, SoftReference<SlingLogger>> loggersByCategory;
-
-    // the default logger configuration set up by the constructor and managed
-    // by the global logger configuration
-    private LogConfig defaultLoggerConfig;
-
-    // the default writer configuration set up by the constructor and managed
-    // by the global logger configuration
-    private LogWriter defaultWriter;
-
     // the root folder to make relative writer paths absolute
     private final File rootDir;
 
@@ -196,10 +182,10 @@ public class LogConfigManager implements LogbackResetListener{
     // ---------- Logback reset listener
 
     public void onReset(LoggerContext context) {
-        Map<String,Appender> appendersByName = new HashMap<String, Appender>();
+        Map<String,Appender<ILoggingEvent>> appendersByName = new HashMap<String, Appender<ILoggingEvent>>();
         Map<Appender,LoggerSpecificEncoder> encoders = new HashMap<Appender, LoggerSpecificEncoder>();
         for(LogConfig config : getLogConfigs()){
-            Appender appender = null;
+            Appender<ILoggingEvent> appender = null;
             if(config.isAppenderDefined()){
                 LogWriter lw = config.getLogWriter();
                 appender = appendersByName.get(lw.getFileName());
@@ -207,6 +193,7 @@ public class LogConfigManager implements LogbackResetListener{
                     LoggerSpecificEncoder encoder = new LoggerSpecificEncoder(getDefaultLayout());
                     appender = lw.createAppender(loggerContext,encoder);
                     encoders.put(appender,encoder);
+                    appendersByName.put(lw.getFileName(),appender);
                 }
                 encoders.get(appender).addLogConfig(config);
             }
@@ -333,7 +320,10 @@ public class LogConfigManager implements LogbackResetListener{
             }
 
             LogWriter newWriter = new LogWriter(pid,logFileName,fileNum,fileSize);
-            writerByFileName.remove(oldWriter.getFileName());
+            if(oldWriter != null){
+                writerByFileName.remove(oldWriter.getFileName());
+            }
+
             writerByFileName.put(newWriter.getFileName(), newWriter);
             writerByPid.put(newWriter.getConfigurationPID(),newWriter);
 
