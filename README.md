@@ -40,7 +40,8 @@ Refer to [FilteringAppender][3] for one such example
 
 ## TODO
 
-* Support for providing LogBack config as fragments
+* Support for providing LogBack config as fragments - It should be possible to add [Logback Fragments][4] 
+  without modifying original file. Instead the fragment config can be provided via OSGi service registry
 * WebConsole plugin to expose internal state
 * WebConsole Status printer to provide access to the various log files
 
@@ -58,3 +59,4 @@ Refer to [FilteringAppender][3] for one such example
 [1]: http://logback.qos.ch/manual/configuration.html#loggerElement
 [2]: http://logback.qos.ch/manual/architecture.html#AppendersAndLayouts
 [3]: https://github.com/chetanmeh/sling-logback/blob/master/example/src/main/java/org/apache/sling/examples/logback/FilteringAppender.java
+[4]: http://logback.qos.ch/manual/configuration.html#fileInclusion
