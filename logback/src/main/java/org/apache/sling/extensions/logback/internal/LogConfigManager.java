@@ -406,7 +406,7 @@ public class LogConfigManager implements LogbackResetListener{
 
             String pattern = (String) configuration.get(LogConfigManager.LOG_PATTERN);
             String level = (String) configuration.get(LogConfigManager.LOG_LEVEL);
-            String file = (String) configuration.get(LogConfigManager.LOG_FILE);
+            String fileName = (String) configuration.get(LogConfigManager.LOG_FILE);
             Set<String> categories = toCategoryList(configuration.get(LogConfigManager.LOG_LOGGERS));
 
             // verify categories
@@ -442,11 +442,13 @@ public class LogConfigManager implements LogbackResetListener{
                 pattern = LogConfigManager.LOG_PATTERN_DEFAULT;
             }
 
-            //TODO: Verify fileName or it can be null meaning that user just wants to
-            //control the log level
+            //FileName being just null means that we want to change the LogLevel
+            if(fileName != null){
+                fileName = getAbsoluteLogFile(fileName);
+            }
 
             // create or modify existing configuration object
-            LogConfig newConfig = new LogConfig(this, pattern, categories, logLevel, file, pid);
+            LogConfig newConfig = new LogConfig(this, pattern, categories, logLevel, fileName, pid);
             LogConfig oldConfig = configByPid.get(pid);
             if(oldConfig != null){
                 configByCategory.keySet().removeAll(oldConfig.getCategories());
