@@ -1,6 +1,7 @@
 package org.apache.sling.extensions.logback.internal;
 
 import java.io.File;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -8,31 +9,29 @@ import java.util.List;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.gaffer.GafferUtil;
 import ch.qos.logback.classic.joran.JoranConfigurator;
+import ch.qos.logback.classic.spi.LoggerContextAwareBase;
 import ch.qos.logback.classic.spi.LoggerContextListener;
-import ch.qos.logback.classic.util.ContextInitializer;
-import ch.qos.logback.core.CoreConstants;
-import ch.qos.logback.core.joran.spi.ConfigurationWatchList;
+import ch.qos.logback.classic.util.EnvUtil;
+import ch.qos.logback.core.joran.GenericConfigurator;
+import ch.qos.logback.core.joran.event.SaxEvent;
 import ch.qos.logback.core.joran.spi.JoranException;
+import ch.qos.logback.core.status.OnConsoleStatusListener;
 import ch.qos.logback.core.status.StatusListener;
 import ch.qos.logback.core.status.StatusListenerAsList;
-import ch.qos.logback.core.status.StatusManager;
-import ch.qos.logback.core.util.ContextUtil;
+import ch.qos.logback.core.status.StatusUtil;
 import ch.qos.logback.core.util.StatusPrinter;
 import org.osgi.framework.BundleContext;
 import org.slf4j.LoggerFactory;
-import org.xml.sax.InputSource;
 
-public class LogbackManager {
+public class LogbackManager extends LoggerContextAwareBase {
     private static final String PREFIX  = "org.apache.sling.commons.log";
-    private static final String CONFIG_FILE_PROPERTY = PREFIX + "." + ContextInitializer.CONFIG_FILE_PROPERTY;
-    private final LoggerContext loggerContext;
-    private final ContextUtil contextUtil;
+    private static final String DEBUG = PREFIX + "." + "debug";
     private final String rootDir;
     private final String contextName = "sling";
     private final LogConfigManager logConfigManager;
-
-    private volatile boolean configChanged;
+    private final org.slf4j.Logger log = LoggerFactory.getLogger(getClass());
 
     private final List<LogbackResetListener> resetListeners = new ArrayList<LogbackResetListener>();
 
@@ -41,82 +40,98 @@ public class LogbackManager {
      */
     private final LoggerContextListener osgiIntegrationListener = new OsgiIntegrationListener();
 
-    private final boolean debug = true;
+    private final boolean debug;
+
+    private final boolean started;
 
     public LogbackManager(BundleContext bundleContext) {
-        this.loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
-        this.contextUtil = new ContextUtil(loggerContext);
+        setLoggerContext((LoggerContext) LoggerFactory.getILoggerFactory());
         this.rootDir = bundleContext.getProperty("sling.home");
+        this.debug = Boolean.parseBoolean(bundleContext.getProperty(DEBUG));
 
         //TODO Make it configurable
-        this.loggerContext.setName(contextName);
-        this.logConfigManager = new LogConfigManager(loggerContext,bundleContext, rootDir,this);
-        this.loggerContext.addListener(osgiIntegrationListener);
-
+        getLoggerContext().setName(contextName);
+        this.logConfigManager = new LogConfigManager(getLoggerContext(),bundleContext, rootDir,this);
         resetListeners.add(logConfigManager);
+        getLoggerContext().addListener(osgiIntegrationListener);
 
-        configure(bundleContext);
+        configure();
+        started = true;
     }
 
-    private void configure(BundleContext bundleContext) {
+    private void configure() {
         ConfiguratorCallback cb = new DefaultCallback();
 
         //Check first for an explicit configuration file
-        String configFile = bundleContext.getProperty(CONFIG_FILE_PROPERTY);
+        File configFile = logConfigManager.getLogbackConfigFile();
         if(configFile != null){
            cb = new FilenameConfiguratorCallback(configFile);
         }
+
         configure(cb);
     }
 
     public void configure(ConfiguratorCallback cb) {
-        StatusListenerAsList statusListenerAsList = new StatusListenerAsList();
+        StatusListener statusListener = new StatusListenerAsList();
+        if(debug){
+            statusListener = new OnConsoleStatusListener();
+        }
 
-        addStatusListener(statusListenerAsList);
-        contextUtil.addInfo("Resetting context: " + loggerContext.getName());
-        loggerContext.reset();
-        // after a reset the statusListenerAsList gets removed as a listener
-        addStatusListener(statusListenerAsList);
+        getStatusManager().add(statusListener);
+        addInfo("Resetting context: " + getLoggerContext().getName());
+        resetContext(statusListener);
+
+        StatusUtil statusUtil = new StatusUtil(getLoggerContext());
+        JoranConfigurator configurator = createConfigurator();
+        final List<SaxEvent> eventList = configurator.recallSafeConfiguration();
+        final long threshold = System.currentTimeMillis();
 
         try {
-            SlingConfigurator configurator = new SlingConfigurator();
-            configurator.setContext(loggerContext);
             cb.perform(configurator);
-            contextUtil.addInfo("Context: " + loggerContext.getName() + " reloaded.");
-        } catch(JoranException je){
-            // StatusPrinter will handle this
-        } finally {
-            removeStatusListener(statusListenerAsList);
-            if (debug) {
-                StatusPrinter.print(statusListenerAsList.getStatusList());
-            }else{
-                StatusPrinter.printInCaseOfErrorsOrWarnings(loggerContext);
+            if (statusUtil.hasXMLParsingErrors(threshold)) {
+                cb.fallbackConfiguration(eventList,createConfigurator(),statusListener);
             }
+            addInfo("Context: " + getLoggerContext().getName() + " reloaded.");
+        } catch(JoranException je){
+            cb.fallbackConfiguration(eventList, createConfigurator(), statusListener);
+        } finally {
+            getStatusManager().remove(statusListener);
+            StatusPrinter.printInCaseOfErrorsOrWarnings(getLoggerContext());
         }
     }
 
     public void shutdown() {
-        loggerContext.removeListener(osgiIntegrationListener);
+        getLoggerContext().removeListener(osgiIntegrationListener);
 
         logConfigManager.close();
 
-        loggerContext.stop();
+        getLoggerContext().stop();
     }
 
     public void configChanged(){
-        configChanged = true;
+        if(!started){
+            return;
+        }
+        log.info("Configuration change detected. Logback config would be reloaded");
+        //TODO Need to see if this has to be done in asynchronous manner
+        //As during initial startup config would be updated frequently causing
+        //LogBack to reset very quickly
+        configure();
     }
 
-    //~-----------------------------Internal Utility Methods
-
-    private void addStatusListener(StatusListener statusListener) {
-        StatusManager sm = loggerContext.getStatusManager();
-        sm.add(statusListener);
+    private JoranConfigurator createConfigurator(){
+        SlingConfigurator configurator = new SlingConfigurator();
+        configurator.setContext(getLoggerContext());
+        return configurator;
     }
 
-    private void removeStatusListener(StatusListener statusListener) {
-        StatusManager sm = loggerContext.getStatusManager();
-        sm.remove(statusListener);
+    private void resetContext(StatusListener statusListener){
+        getLoggerContext().reset();
+        // after a reset the statusListenerAsList gets removed as a listener
+        if(statusListener != null
+                && !getStatusManager().getCopyOfStatusListenerList().contains(statusListener)){
+             getStatusManager().add(statusListener);
+        }
     }
 
     //~-------------------------------LogggerContextListener
@@ -134,18 +149,9 @@ public class LogbackManager {
         }
 
         public void onReset(LoggerContext context) {
-            addCustomConfigWatchList(context);
-
             for(LogbackResetListener l : resetListeners){
                 l.onReset(context);
             }
-
-        }
-
-        private void addCustomConfigWatchList(LoggerContext context) {
-            ConfigurationWatchList cwl = new OsgiAwareConfigurationWatchList();
-            cwl.setContext(context);
-            context.putObject(CoreConstants.CONFIGURATION_WATCH_LIST, cwl);
         }
 
         public void onStop(LoggerContext context) {
@@ -154,20 +160,6 @@ public class LogbackManager {
         public void onLevelChange(Logger logger, Level level) {
         }
 
-    }
-
-    //--------------------------------ConfigurationWatchList
-
-    private class OsgiAwareConfigurationWatchList extends ConfigurationWatchList {
-        @Override
-        public boolean changeDetected() {
-            if(configChanged){
-                //Reset the flag to false once it is read
-                configChanged = false;
-                return true;
-            }
-            return super.changeDetected();
-        }
     }
 
     //~--------------------------------Configurator Base
@@ -183,52 +175,80 @@ public class LogbackManager {
 
     //~--------------------------------Configuration Support
 
-    private static interface ConfiguratorCallback {
-        void perform(JoranConfigurator configurator) throws JoranException;
-    }
+    private abstract class ConfiguratorCallback {
+        abstract void perform(JoranConfigurator configurator) throws JoranException;
 
-    private class InputSourceConfiguratorCallback implements ConfiguratorCallback {
-        private final InputSource is;
-
-        public InputSourceConfiguratorCallback(InputSource is) {
-            this.is = is;
-        }
-
-        public void perform(JoranConfigurator configurator) throws JoranException {
-            configurator.doConfigure(is);
-        }
-    }
-
-    private class FilenameConfiguratorCallback implements ConfiguratorCallback {
-        private final String fileName;
-
-        public FilenameConfiguratorCallback(String fileName) {
-            this.fileName = fileName;
-        }
-
-        public void perform(JoranConfigurator configurator) throws JoranException {
-            String fileName = this.fileName.trim();
-            File file = new File(fileName);
-            if(!file.isAbsolute()){
-                file = new File(rootDir,fileName);
+        /**
+         * Logic based on ch.qos.logback.classic.turbo.ReconfigureOnChangeFilter.ReconfiguringThread
+         */
+        public void fallbackConfiguration(List<SaxEvent> eventList, JoranConfigurator configurator,
+                                          StatusListener statusListener) {
+            URL mainURL = getMainUrl();
+            if (mainURL != null) {
+                if (eventList != null) {
+                    addWarn("Falling back to previously registered safe configuration.");
+                    try {
+                        resetContext(statusListener);
+                        GenericConfigurator.informContextOfURLUsedForConfiguration(context, mainURL);
+                        configurator.doConfigure(eventList);
+                        addInfo("Re-registering previous fallback configuration once more as a fallback configuration point");
+                        configurator.registerSafeConfiguration();
+                    } catch (JoranException e) {
+                        addError("Unexpected exception thrown by a configuration considered safe.", e);
+                    }
+                } else {
+                    addWarn("No previous configuration to fall back on.");
+                }
             }
-            final String path = file.getAbsolutePath();
-            contextUtil.addInfo("Configuring from "+path);
-            if(!file.exists()){
-                contextUtil.addWarn("File does not exist "+path);
-                return;
-            } else if(!file.canRead()){
-                contextUtil.addWarn("Cannot read file "+path);
-                return;
-            }
-            configurator.doConfigure(file);
+        }
+
+        protected URL getMainUrl() {
+            return null;
         }
     }
 
-    private class DefaultCallback implements ConfiguratorCallback {
+    private class FilenameConfiguratorCallback extends ConfiguratorCallback {
+        private final File configFile;
+
+        public FilenameConfiguratorCallback(File configFile) {
+            this.configFile = configFile;
+        }
+
         public void perform(JoranConfigurator configurator) throws JoranException {
-            URL url = getClass().getClassLoader().getResource("logback.xml");
-            configurator.doConfigure(url);
+            final String path = configFile.getAbsolutePath();
+            addInfo("Configuring from " + path);
+            if (configFile.getName().endsWith("xml")) {
+                configurator.doConfigure(configFile);
+            } else if (configFile.getName().endsWith("groovy")) {
+                if (EnvUtil.isGroovyAvailable()) {
+                    // avoid directly referring to GafferConfigurator so as to avoid
+                    // loading  groovy.lang.GroovyObject . See also http://jira.qos.ch/browse/LBCLASSIC-214
+                    GafferUtil.runGafferConfiguratorOn(getLoggerContext(), this, configFile);
+                } else {
+                    addError("Groovy classes are not available on the class path. ABORTING INITIALIZATION.");
+                }
+            }
+        }
+
+        @Override
+        protected URL getMainUrl() {
+            try {
+                return configFile.toURI().toURL();
+            } catch (MalformedURLException e) {
+                addWarn("Cannot convert file to url " + configFile.getAbsolutePath(),e);
+                return null;
+            }
+        }
+    }
+
+    private class DefaultCallback extends ConfiguratorCallback {
+        public void perform(JoranConfigurator configurator) throws JoranException {
+            configurator.doConfigure(getMainUrl());
+        }
+
+        @Override
+        protected URL getMainUrl() {
+            return getClass().getClassLoader().getResource("logback-empty.xml");
         }
     }
 }
