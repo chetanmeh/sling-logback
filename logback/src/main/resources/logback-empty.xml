@@ -18,16 +18,10 @@
     under the License.
 -->
 <configuration>
-
-  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-    <!-- encoders are assigned the type
-         ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
-    <encoder>
-      <pattern>%d{dd.MM.yyyy HH:mm:ss.SSS} *%level* [%thread] %logger %message%n</pattern>
-    </encoder>
-  </appender>
-
-  <root level="info">
-    <appender-ref ref="CONSOLE" />
-  </root>
+  <!--
+  This config file is used when LogBack is being configured from LogbackManager and no
+  explicit config is provided. It provides global settings which are then merged with the
+  OSGi config.
+  -->
+  <jmxConfigurator />
 </configuration>
