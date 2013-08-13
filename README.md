@@ -16,7 +16,7 @@ The whiteboard suppoert simplifies the task of registering appenders with logger
 can be  registered by exporting it as a service. The whiteboard implementation detects all
 `ch.qos.logback.core.Appender` with the right service properties.
 
-    :::java
+    ```java
     Dictionary<String,Object> props = new Hashtable<String, Object>();
 
     String[] loggers = {
@@ -26,6 +26,7 @@ can be  registered by exporting it as a service. The whiteboard implementation d
 
     props.put("loggers",loggers);
     sr = bundleContext.registerService(Appender.class.getName(),this,props);
+    ```
 
 Service property `loggers` is a multi value property having following format
 
@@ -48,8 +49,8 @@ Service property `loggers` is a multi value property having following format
  * [Sling Commons Log](http://sling.apache.org/site/logging.html)
  * [Felix Meschberger Prototype](https://svn.apache.org/repos/asf/sling/whiteboard/fmeschbe/logback/)
  * Discussions on Sling mailing list
- ** http://markmail.org/thread/66hrpdixaahvtyy5
- ** http://markmail.org/thread/etcayimn6ili3edr
+     * http://markmail.org/thread/66hrpdixaahvtyy5
+     * http://markmail.org/thread/etcayimn6ili3edr
 
 
 [1]: http://logback.qos.ch/manual/configuration.html#loggerElement
