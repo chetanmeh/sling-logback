@@ -24,6 +24,7 @@ import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,6 +38,7 @@ import ch.qos.logback.core.util.ContextUtil;
 import org.apache.sling.extensions.logback.internal.config.ConfigAdminSupport;
 import org.apache.sling.extensions.logback.internal.config.ConfigurationException;
 import org.apache.sling.extensions.logback.internal.util.LoggerSpecificEncoder;
+import org.apache.sling.extensions.logback.internal.util.Util;
 import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -605,30 +607,8 @@ public class LogConfigManager implements LogbackResetListener{
             return loggerNames;
         }
 
-        // convert the loggers object to an array
-        Object[] loggersArray;
-        if (loggers.getClass().isArray()) {
-            loggersArray = (Object[]) loggers;
-        } else if (loggers instanceof Collection<?>) {
-            loggersArray = ((Collection<?>) loggers).toArray();
-        } else {
-            loggersArray = new Object[] { loggers };
-        }
-
-        // convert the array of potentially comma-separated logger names
-        // into the set of logger names
-        for (Object loggerObject : loggersArray) {
-            if (loggerObject != null) {
-                String[] splitLoggers = loggerObject.toString().split(",");
-                for (String logger : splitLoggers) {
-                    logger = logger.trim();
-                    if (logger.length() > 0) {
-                        loggerNames.add(logger);
-                    }
-                }
-            }
-        }
-
+        List<String> loggerNamesList = Util.toList(loggers);
+        loggerNames.addAll(loggerNamesList);
         // return those names
         return loggerNames;
     }
