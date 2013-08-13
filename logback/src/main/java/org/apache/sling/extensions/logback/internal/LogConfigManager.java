@@ -39,12 +39,15 @@ import org.apache.sling.extensions.logback.internal.config.ConfigurationExceptio
 import org.apache.sling.extensions.logback.internal.util.LoggerSpecificEncoder;
 import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LogConfigManager implements LogbackResetListener{
 
     public static final String LOG_LEVEL = "org.apache.sling.commons.log.level";
 
     public static final String LOG_FILE = "org.apache.sling.commons.log.file";
+
+    public static final String LOGBACK_FILE = "org.apache.sling.commons.log.configurationFile";
 
     public static final String LOG_FILE_NUMBER = "org.apache.sling.commons.log.file.number";
 
@@ -67,8 +70,6 @@ public class LogConfigManager implements LogbackResetListener{
     public static final String FACTORY_PID_WRITERS = PID + ".factory.writer";
 
     public static final String FACTORY_PID_CONFIGS = PID + ".factory.config";
-
-    public static final String ROOT = "";
 
     private final LoggerContext loggerContext;
 
@@ -100,6 +101,12 @@ public class LogConfigManager implements LogbackResetListener{
 
     private final LogbackManager logbackManager;
 
+    private final Logger log = LoggerFactory.getLogger(getClass());
+
+    private final Object configLock = new Object();
+
+    private File logbackConfigFile;
+
     /**
      * Logs a message an optional stack trace to error output. This method is
      * used by the logging system in case of errors writing to the correct
@@ -120,6 +127,7 @@ public class LogConfigManager implements LogbackResetListener{
     public LogConfigManager(LoggerContext loggerContext, BundleContext bundleContext, String rootDir, LogbackManager logbackManager) {
         this.logbackManager = logbackManager;
         this.loggerContext = loggerContext;
+
         contextUtil = new ContextUtil(loggerContext);
         writerByPid = new ConcurrentHashMap<String, LogWriter>();
         writerByFileName = new ConcurrentHashMap<String, LogWriter>();
@@ -178,8 +186,11 @@ public class LogConfigManager implements LogbackResetListener{
         return loggerContext;
     }
 
+    public File getLogbackConfigFile() {
+        return logbackConfigFile;
+    }
 
-    // ---------- Logback reset listener
+// ---------- Logback reset listener
 
     public void onReset(LoggerContext context) {
         Map<String,Appender<ILoggingEvent>> appendersByName = new HashMap<String, Appender<ILoggingEvent>>();
@@ -188,6 +199,11 @@ public class LogConfigManager implements LogbackResetListener{
             Appender<ILoggingEvent> appender = null;
             if(config.isAppenderDefined()){
                 LogWriter lw = config.getLogWriter();
+
+                //TODO Need to see if we can refer to appenders which are
+                //already defined in LogBack config. Only issue is Listener are
+                //executed *before* config is parsed. So cannot refer to Appenders here
+
                 appender = appendersByName.get(lw.getFileName());
                 if(appender == null){
                     LoggerSpecificEncoder encoder = new LoggerSpecificEncoder(getDefaultLayout());
@@ -218,15 +234,20 @@ public class LogConfigManager implements LogbackResetListener{
         if (configuration == null) {
             configuration = defaultConfiguration;
         }
-
+        processGlobalConfig(configuration);
         // set the logger name to a special value to indicate the global
         // (ROOT) logger setting (SLING-529)
         configuration.put(LogConfigManager.LOG_LOGGERS, Logger.ROOT_LOGGER_NAME);
+        if(configuration.get(LOG_FILE) == null){
+            configuration.put(LOG_FILE, LogWriter.FILE_NAME_CONSOLE);
+        }
 
         // update the default log writer and logger configuration
         updateLogWriter(LogConfigManager.PID, configuration);
         updateLoggerConfiguration(LogConfigManager.PID, configuration);
     }
+
+
 
     /**
      * Updates or removes the log writer configuration identified by the
@@ -272,10 +293,10 @@ public class LogConfigManager implements LogbackResetListener{
 
             // get the log file parameter and normalize empty string to null
             String logFileName = (String) configuration.get(LogConfigManager.LOG_FILE);
+
+            //Null logFileName is treated as Console Appender
             if (logFileName != null && logFileName.trim().length() == 0) {
                 logFileName = null;
-                //TODO Null logFileName means configuring the ConsoleAppender. Need to be
-                //Handled separately
             }
 
             // if we have a file name, make it absolute and correct for our
@@ -477,6 +498,26 @@ public class LogConfigManager implements LogbackResetListener{
         return config;
     }
 
+    private void processGlobalConfig(Dictionary<String, String> configuration) {
+        String fileName = configuration.get(LOGBACK_FILE);
+        if(fileName != null){
+            File file = new File(fileName);
+            if(!file.isAbsolute()){
+                file = new File(rootDir,fileName);
+            }
+            final String path = file.getAbsolutePath();
+            if(!file.exists()){
+                log.warn("Logback configuration file [{}]does not exist.", path);
+            } else if(!file.canRead()){
+                log.warn("Logback configuration [{}]file cannot be read", path);
+            }else{
+                  synchronized (configLock){
+                      logbackConfigFile = file;
+                  }
+            }
+        }
+    }
+
     // ---------- Internal helpers ---------------------------------------------
 
     private LogWriter createImplicitWriter(String logWriterName) {
@@ -557,8 +598,8 @@ public class LogConfigManager implements LogbackResetListener{
 
         // in case of the special setting ROOT, return a set of just the
         // root logger name (SLING-529)
-        if (loggers == ROOT) {
-            loggerNames.add(ROOT);
+        if (loggers == Logger.ROOT_LOGGER_NAME) {
+            loggerNames.add(Logger.ROOT_LOGGER_NAME);
             return loggerNames;
         }
 
