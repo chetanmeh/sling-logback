@@ -39,5 +39,6 @@
     <modules>
           <module>launcher</module>
           <module>logback</module>
+          <module>example</module>
   </modules>
 </project>
