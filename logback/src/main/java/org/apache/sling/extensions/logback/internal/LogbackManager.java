@@ -5,6 +5,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -43,6 +44,10 @@ public class LogbackManager extends LoggerContextAwareBase {
     private final boolean debug;
 
     private final boolean started;
+
+    private volatile boolean resetInProgress;
+
+    private final AtomicBoolean configChanged = new AtomicBoolean();
 
     public LogbackManager(BundleContext bundleContext) {
         setLoggerContext((LoggerContext) LoggerFactory.getILoggerFactory());
@@ -112,11 +117,12 @@ public class LogbackManager extends LoggerContextAwareBase {
         if(!started){
             return;
         }
-        log.info("Configuration change detected. Logback config would be reloaded");
-        //TODO Need to see if this has to be done in asynchronous manner
-        //As during initial startup config would be updated frequently causing
-        //LogBack to reset very quickly
-        configure();
+        if(resetInProgress){
+            configChanged.set(true);
+            addInfo("LoggerContext reset in progress. Marking config changed to true");
+            return;
+        }
+        scheduleConfigReload();
     }
 
     private JoranConfigurator createConfigurator(){
@@ -131,6 +137,26 @@ public class LogbackManager extends LoggerContextAwareBase {
         if(statusListener != null
                 && !getStatusManager().getCopyOfStatusListenerList().contains(statusListener)){
              getStatusManager().add(statusListener);
+        }
+    }
+
+    private void scheduleConfigReload(){
+        getLoggerContext().getExecutorService().submit(new LoggerReconfigurer());
+    }
+
+    private class LoggerReconfigurer implements Runnable {
+
+        public void run() {
+            resetInProgress = true;
+            addInfo("Performing configuration");
+            configure();
+            boolean configChanged = LogbackManager.this.configChanged.getAndSet(false);
+            if(configChanged){
+                addInfo("Config change detected while reset was in progress. Rescheduling new config reset");
+                scheduleConfigReload();
+            }else{
+                resetInProgress = false;
+            }
         }
     }
 
