@@ -44,6 +44,7 @@ Refer to [FilteringAppender][3] for one such example
   without modifying original file. Instead the fragment config can be provided via OSGi service registry
 * WebConsole plugin to expose internal state
 * WebConsole Status printer to provide access to the various log files
+* Integration testcases
 
 ## References
 
