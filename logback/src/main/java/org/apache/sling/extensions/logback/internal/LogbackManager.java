@@ -24,6 +24,7 @@ import ch.qos.logback.core.status.StatusListenerAsList;
 import ch.qos.logback.core.status.StatusUtil;
 import ch.qos.logback.core.util.StatusPrinter;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.InvalidSyntaxException;
 import org.slf4j.LoggerFactory;
 
 public class LogbackManager extends LoggerContextAwareBase {
@@ -49,15 +50,22 @@ public class LogbackManager extends LoggerContextAwareBase {
 
     private final AtomicBoolean configChanged = new AtomicBoolean();
 
-    public LogbackManager(BundleContext bundleContext) {
+    private final AppenderTracker appenderTracker;
+
+    public LogbackManager(BundleContext bundleContext) throws InvalidSyntaxException {
         setLoggerContext((LoggerContext) LoggerFactory.getILoggerFactory());
         this.rootDir = bundleContext.getProperty("sling.home");
         this.debug = Boolean.parseBoolean(bundleContext.getProperty(DEBUG));
 
+        this.appenderTracker = new AppenderTracker(bundleContext,getLoggerContext());
+
         //TODO Make it configurable
         getLoggerContext().setName(contextName);
         this.logConfigManager = new LogConfigManager(getLoggerContext(),bundleContext, rootDir,this);
+
         resetListeners.add(logConfigManager);
+        resetListeners.add(appenderTracker);
+
         getLoggerContext().addListener(osgiIntegrationListener);
 
         configure();
@@ -106,10 +114,9 @@ public class LogbackManager extends LoggerContextAwareBase {
     }
 
     public void shutdown() {
+        appenderTracker.close();
         getLoggerContext().removeListener(osgiIntegrationListener);
-
         logConfigManager.close();
-
         getLoggerContext().stop();
     }
 
