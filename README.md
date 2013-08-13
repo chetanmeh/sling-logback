@@ -16,7 +16,7 @@ The whiteboard suppoert simplifies the task of registering appenders with logger
 can be  registered by exporting it as a service. The whiteboard implementation detects all
 `ch.qos.logback.core.Appender` with the right service properties.
 
-    ```java
+```java
     Dictionary<String,Object> props = new Hashtable<String, Object>();
 
     String[] loggers = {
@@ -26,11 +26,11 @@ can be  registered by exporting it as a service. The whiteboard implementation d
 
     props.put("loggers",loggers);
     sr = bundleContext.registerService(Appender.class.getName(),this,props);
-    ```
+```
 
 Service property `loggers` is a multi value property having following format
 
-  <Logger Name>:<Level>:<additivity>
+    <Logger Name>:<Level>:<additivity>
 
 * Logger Name (required) - Name of the logger to which the appender has to be attached
 * Level (Optional, default INFO) - Logging level e.g. INFO, WARN etc. See [Logback Manual][1]
