@@ -38,6 +38,11 @@ import ch.qos.logback.core.rolling.TimeBasedRollingPolicy;
  */
 public class LogWriter {
 
+    /**
+     * Special fileName for which Console Appender would be created
+     */
+    public static final String FILE_NAME_CONSOLE = "CONSOLE";
+
     private static final long FACTOR_KB = 1024;
 
     private static final long FACTOR_MB = 1024 * FACTOR_KB;
@@ -65,8 +70,8 @@ public class LogWriter {
     private final String logRotation;
 
     public LogWriter(String configurationPID, String fileName, int logNumber, String logRotation) {
-        if(fileName == null){
-            fileName = "";
+        if(fileName == null || fileName.length() == 0){
+            fileName = FILE_NAME_CONSOLE;
         }
 
         if (logNumber < 0) {
@@ -110,7 +115,7 @@ public class LogWriter {
     public Appender<ILoggingEvent> createAppender(final Context context, final Encoder<ILoggingEvent> encoder) {
 
         OutputStreamAppender<ILoggingEvent> appender;
-        if (getFileName().length() == 0) {
+        if (FILE_NAME_CONSOLE.equals(fileName)) {
             appender = new ConsoleAppender<ILoggingEvent>();
         } else {
             RollingFileAppender<ILoggingEvent> rollingAppender = new RollingFileAppender<ILoggingEvent>();
