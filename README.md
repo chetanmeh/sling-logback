@@ -35,6 +35,8 @@ Service property `loggers` is a multi value property having following format
 * Logger Name (required) - Name of the logger to which the appender has to be attached
 * Level (Optional, default INFO) - Logging level e.g. INFO, WARN etc. See [Logback Manual][1]
 * additivity (Optional, default false) - See Additivity in [Logback Manual][2]
+ 
+Refer to [FilteringAppender][3] for one such example
 
 ## TODO
 
@@ -55,3 +57,4 @@ Service property `loggers` is a multi value property having following format
 
 [1]: http://logback.qos.ch/manual/configuration.html#loggerElement
 [2]: http://logback.qos.ch/manual/architecture.html#AppendersAndLayouts
+[3]: https://github.com/chetanmeh/sling-logback/blob/master/example/src/main/java/org/apache/sling/examples/logback/FilteringAppender.java
