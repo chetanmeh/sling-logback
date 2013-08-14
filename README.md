@@ -9,6 +9,7 @@ Logback based logger for Sling
 * ConfigurationAdmin integration - Logback Config can be enhanced via config obtained from
   OSGi configuration admin
 * Supports Appenders via Whiteboard pattern
+* WebConsole Plugin and Configuration Printer support
 
 ### Appenders and Whiteboard pattern
 
@@ -42,6 +43,7 @@ Service property `loggers` is a multi value property having following format
   without modifying original file. Instead the fragment config can be provided via OSGi service registry
 * ~~WebConsole plugin to expose internal state~~
 * ~~WebConsole Status printer to provide access to the various log files~~
+* Integration testcase
 
 ## References
 
