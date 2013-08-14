@@ -35,16 +35,13 @@ Service property `loggers` is a multi value property having following format
 * Logger Name (required) - Name of the logger to which the appender has to be attached
 * Level (Optional, default INFO) - Logging level e.g. INFO, WARN etc. See [Logback Manual][1]
 * additivity (Optional, default false) - See Additivity in [Logback Manual][2]
- 
-Refer to [FilteringAppender][3] for one such example
 
 ## TODO
 
 * Support for providing LogBack config as fragments - It should be possible to add [Logback Fragments][4] 
   without modifying original file. Instead the fragment config can be provided via OSGi service registry
-* WebConsole plugin to expose internal state
-* WebConsole Status printer to provide access to the various log files
-* Integration testcases
+* ~~WebConsole plugin to expose internal state~~
+* ~~WebConsole Status printer to provide access to the various log files~~
 
 ## References
 
