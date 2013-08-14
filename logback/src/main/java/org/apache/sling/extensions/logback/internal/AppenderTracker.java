@@ -20,6 +20,7 @@
 package org.apache.sling.extensions.logback.internal;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -76,6 +77,10 @@ public class AppenderTracker extends ServiceTracker implements LogbackResetListe
         super.removedService(reference, service);
     }
 
+    public Collection<AppenderInfo> getAppenderInfos(){
+        return appenders.values();
+    }
+
     private void detachAppender(AppenderInfo ai) {
         if(ai != null){
             for(LoggerInfo li : ai.loggers){
@@ -130,12 +135,14 @@ public class AppenderTracker extends ServiceTracker implements LogbackResetListe
         return FrameworkUtil.createFilter(filter);
     }
 
-    private static class AppenderInfo {
+    static class AppenderInfo {
         final List<LoggerInfo> loggers;
         final Appender<ILoggingEvent> appender;
+        final ServiceReference serviceReference;
 
         public AppenderInfo(ServiceReference ref,Appender<ILoggingEvent> appender){
             this.appender = appender;
+            this.serviceReference = ref;
 
             List<LoggerInfo> loggers = new ArrayList<LoggerInfo>();
             for(String logger : Util.toList(ref.getProperty(PROP_LOGGER))){
