@@ -28,9 +28,9 @@ import ch.qos.logback.core.Context;
 import ch.qos.logback.core.OutputStreamAppender;
 import ch.qos.logback.core.encoder.Encoder;
 import ch.qos.logback.core.rolling.FixedWindowRollingPolicy;
-import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
 import ch.qos.logback.core.rolling.TimeBasedRollingPolicy;
+import org.apache.sling.extensions.logback.internal.util.SlingRollingFileAppender;
 
 /**
  * The <code>LogWriter</code> class encapsulates the OSGi configuration for a
@@ -117,8 +117,9 @@ public class LogWriter {
         OutputStreamAppender<ILoggingEvent> appender;
         if (FILE_NAME_CONSOLE.equals(fileName)) {
             appender = new ConsoleAppender<ILoggingEvent>();
+            appender.setName(FILE_NAME_CONSOLE);
         } else {
-            RollingFileAppender<ILoggingEvent> rollingAppender = new RollingFileAppender<ILoggingEvent>();
+            SlingRollingFileAppender<ILoggingEvent> rollingAppender = new SlingRollingFileAppender<ILoggingEvent>();
             rollingAppender.setAppend(true);
             rollingAppender.setFile(getFileName());
 
@@ -182,8 +183,12 @@ public class LogWriter {
                 rollingAppender.setTriggeringPolicy(policy);
             }
 
+            rollingAppender.setLogWriter(this);
+            rollingAppender.setName(getFileName());
+
             appender = rollingAppender;
         }
+
 
         appender.setContext(context);
         appender.setEncoder(encoder);
