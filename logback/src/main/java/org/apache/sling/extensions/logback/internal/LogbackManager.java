@@ -4,7 +4,11 @@ import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -13,9 +17,11 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.gaffer.GafferUtil;
 import ch.qos.logback.classic.joran.JoranConfigurator;
+import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.LoggerContextAwareBase;
 import ch.qos.logback.classic.spi.LoggerContextListener;
 import ch.qos.logback.classic.util.EnvUtil;
+import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.joran.GenericConfigurator;
 import ch.qos.logback.core.joran.event.SaxEvent;
 import ch.qos.logback.core.joran.spi.JoranException;
@@ -57,7 +63,8 @@ public class LogbackManager extends LoggerContextAwareBase {
 
     private final AppenderTracker appenderTracker;
 
-    private final ServiceRegistration panelRegistration;
+    private ServiceRegistration panelRegistration;
+    private ServiceRegistration printerRegistration;
 
     public LogbackManager(BundleContext bundleContext) throws InvalidSyntaxException {
         setLoggerContext((LoggerContext) LoggerFactory.getILoggerFactory());
@@ -76,13 +83,17 @@ public class LogbackManager extends LoggerContextAwareBase {
         getLoggerContext().addListener(osgiIntegrationListener);
 
         configure();
-        panelRegistration = registerWebConsolePlugin(bundleContext);
+        registerWebConsoleSupport(bundleContext);
         started = true;
     }
 
     public void shutdown() {
         if(panelRegistration != null){
             panelRegistration.unregister();
+        }
+
+        if(printerRegistration != null){
+            printerRegistration.unregister();
         }
 
         appenderTracker.close();
@@ -305,17 +316,96 @@ public class LogbackManager extends LoggerContextAwareBase {
         }
     }
 
-    //~ ------------------------------------------------------------------
-    private ServiceRegistration registerWebConsolePlugin(BundleContext context){
-        Properties props = new Properties();
-        props.put(Constants.SERVICE_VENDOR, "Apache Software Foundation");
-        props.put(Constants.SERVICE_DESCRIPTION, "Sling Log Support");
-        props.put("felix.webconsole.label", "slinglogback");
-        props.put("felix.webconsole.title", "Sling Log Support");
+    //~ ----------------------------------------------WebConsole Support
 
-        //Registering a ServiceFactory to avoid dependency on Servlet API
-        //on startup
-        return context.registerService("javax.servlet.Servlet", new PluginServiceFactory(), props);
+    public LoggerStateContext determineLoggerState(){
+        final List<Logger> loggers = getLoggerContext().getLoggerList();
+        final LoggerStateContext ctx = new LoggerStateContext(loggers);
+        for(Logger logger : loggers){
+            if(logger.iteratorForAppenders().hasNext() || logger.getLevel() != null){
+                ctx.loggerInfos.add(logger);
+            }
+
+            Iterator<Appender<ILoggingEvent>> itr = logger.iteratorForAppenders();
+            while(itr.hasNext()){
+                Appender<ILoggingEvent> a = itr.next();
+                if(a.getName() != null && !ctx.appenders.containsKey(a.getName())){
+                    ctx.appenders.put(a.getName(),a);
+                }
+            }
+        }
+        return ctx;
+    }
+
+    public class LoggerStateContext {
+        final List<Logger> allLoggers;
+        /**
+         * List of logger which have explicitly defined level or appenders set
+         */
+        final List<Logger> loggerInfos = new ArrayList<Logger>();
+        final Map<String,Appender<ILoggingEvent>> appenders = new HashMap<String, Appender<ILoggingEvent>>();
+        final Map<Appender<ILoggingEvent>, AppenderTracker.AppenderInfo> dynamicAppenders =
+                new HashMap<Appender<ILoggingEvent>, AppenderTracker.AppenderInfo>();
+
+        private LoggerStateContext(List<Logger> allLoggers) {
+            this.allLoggers = allLoggers;
+            for(AppenderTracker.AppenderInfo ai : getAppenderTracker().getAppenderInfos()){
+                dynamicAppenders.put(ai.appender, ai);
+            }
+        }
+
+        int getNumberOfLoggers(){
+            return allLoggers.size();
+        }
+
+        int getNumofSlingLogConfig(){
+            return getLogConfigManager().getConfigByPid().size();
+        }
+
+        int getNumofSlingLogWriters(){
+            return getLogConfigManager().getWriterByPid().size();
+        }
+
+        int getNumOfDynamicAppenders(){
+            return getAppenderTracker().getAppenderInfos().size();
+        }
+
+        int getNumOfLogbackAppenders(){
+            return appenders.size()
+                    - getNumofSlingLogWriters()
+                    - getNumOfDynamicAppenders();
+        }
+
+        boolean isDynamicAppender(Appender<ILoggingEvent> a){
+            return dynamicAppenders.containsKey(a);
+        }
+
+        Collection<Appender<ILoggingEvent>> getAllAppenders(){
+            return appenders.values();
+        }
+    }
+
+    private void registerWebConsoleSupport(BundleContext context){
+        final ServiceFactory serviceFactory = new PluginServiceFactory();
+
+        Properties pluginProps = new Properties();
+        pluginProps.put(Constants.SERVICE_VENDOR, "Apache Software Foundation");
+        pluginProps.put(Constants.SERVICE_DESCRIPTION, "Sling Log Support");
+        pluginProps.put("felix.webconsole.label", "slinglogback");
+        pluginProps.put("felix.webconsole.title", "Sling Log Support");
+
+        panelRegistration=  context.registerService("javax.servlet.Servlet",serviceFactory, pluginProps);
+
+        Properties printerProps = new Properties();
+        printerProps.put(Constants.SERVICE_VENDOR, "Apache Software Foundation");
+        printerProps.put(Constants.SERVICE_DESCRIPTION, "Sling Log Support");
+        printerProps.put("felix.webconsole.label", "slinglogbacklogs");
+        printerProps.put("felix.webconsole.title", "Log Files");
+        printerProps.put("felix.webconsole.configprinter.modes", "always");
+
+        //TODO need to see to add support for Inventory Feature
+        printerRegistration=  context.registerService(SlingConfigurationPrinter.class.getName(),
+                new SlingConfigurationPrinter(this), printerProps);
     }
 
     private class PluginServiceFactory implements ServiceFactory {

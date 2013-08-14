@@ -20,11 +20,7 @@ package org.apache.sling.extensions.logback.internal;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -34,10 +30,12 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.FileAppender;
+import org.apache.sling.extensions.logback.internal.LogbackManager.LoggerStateContext;
 import org.apache.sling.extensions.logback.internal.util.SlingRollingFileAppender;
 import org.osgi.framework.Constants;
 
 import static org.apache.sling.extensions.logback.internal.AppenderTracker.AppenderInfo;
+
 
 /**
  * The <code>SlingLogPanel</code> is a Felix Web Console plugin to display the
@@ -65,11 +63,10 @@ public class SlingLogPanel extends HttpServlet {
         final String consoleAppRoot = (String) req.getAttribute("felix.webconsole.appRoot");
         final String cfgColTitle = (consoleAppRoot == null) ? "PID" : "Configuration";
 
-        final List<Logger> loggers = logbackManager.getLoggerContext().getLoggerList();
-        final LoggerStateContext ctx = determineLoggerState(loggers);
+        final LoggerStateContext ctx = logbackManager.determineLoggerState();
         pw.printf(
             "<p class='statline'>Log Service Stats: %d categories, %d configuration(s), %d appenders(s), %d OSGi appenders(s), %d Logback Appenders(s)</p>%n",
-                loggers.size(),
+                ctx.getNumberOfLoggers(),
                 ctx.getNumofSlingLogConfig(),
                 ctx.getNumofSlingLogWriters(),
                 ctx.getNumOfDynamicAppenders(),
@@ -92,14 +89,14 @@ public class SlingLogPanel extends HttpServlet {
         pw.println("</thead>");
         pw.println("<tbody class='ui-widget-content'>");
 
-        for(LoggerInfo li : ctx.loggerInfos){
+        for(Logger logger : ctx.loggerInfos){
             pw.println("<tr>");
-            pw.println("<td>" + li.logger.getLevel() + "</td>");
-            pw.println("<td>" + li.logger.getName() + "</td>");
+            pw.println("<td>" + logger.getLevel() + "</td>");
+            pw.println("<td>" + logger.getName() + "</td>");
 
             pw.println("<td>");
             pw.println("<ul>");
-            Iterator<Appender<ILoggingEvent>> itr = li.logger.iteratorForAppenders();
+            Iterator<Appender<ILoggingEvent>> itr = logger.iteratorForAppenders();
             while(itr.hasNext()) {
                 Appender<ILoggingEvent> a = itr.next();
                 pw.print("<li>");
@@ -183,71 +180,5 @@ public class SlingLogPanel extends HttpServlet {
         // recent web console has app root and hence we can use an image
         return "<a href=\""+subContext+"/" + pid + "\"><img src=\"" + consoleAppRoot
                 + "/res/imgs/component_configure.png\" border=\"0\" /></a>";
-    }
-
-    private LogConfigManager getLogConfigManager(){
-        return logbackManager.getLogConfigManager();
-    }
-
-    private LoggerStateContext determineLoggerState(List<Logger> loggers){
-        LoggerStateContext ctx = new LoggerStateContext();
-        for(Logger logger : loggers){
-           if(logger.iteratorForAppenders().hasNext() || logger.getLevel() != null){
-               ctx.loggerInfos.add(new LoggerInfo(logger));
-           }
-
-           Iterator<Appender<ILoggingEvent>> itr = logger.iteratorForAppenders();
-            while(itr.hasNext()){
-                Appender<ILoggingEvent> a = itr.next();
-                if(a.getName() != null && !ctx.appenders.containsKey(a.getName())){
-                    ctx.appenders.put(a.getName(),a);
-                }
-            }
-        }
-
-        return ctx;
-    }
-
-    private class LoggerStateContext {
-        final List<LoggerInfo> loggerInfos = new ArrayList<LoggerInfo>();
-        final Map<String,Appender<ILoggingEvent>> appenders = new HashMap<String, Appender<ILoggingEvent>>();
-        final Map<Appender<ILoggingEvent>, AppenderInfo> dynamicAppenders =
-                new HashMap<Appender<ILoggingEvent>, AppenderInfo>();
-
-        private LoggerStateContext() {
-            for(AppenderInfo ai : logbackManager.getAppenderTracker().getAppenderInfos()){
-                dynamicAppenders.put(ai.appender, ai);
-            }
-        }
-
-        int getNumofSlingLogConfig(){
-            return getLogConfigManager().getConfigByPid().size();
-        }
-
-        int getNumofSlingLogWriters(){
-            return getLogConfigManager().getWriterByPid().size();
-        }
-
-        int getNumOfDynamicAppenders(){
-            return logbackManager.getAppenderTracker().getAppenderInfos().size();
-        }
-
-        int getNumOfLogbackAppenders(){
-            return appenders.size()
-                    - getNumofSlingLogWriters()
-                    - getNumOfDynamicAppenders();
-        }
-
-        boolean isDynamicAppender(Appender<ILoggingEvent> a){
-            return dynamicAppenders.containsKey(a);
-        }
-    }
-
-    private static class LoggerInfo {
-        final Logger logger;
-
-        private LoggerInfo(Logger logger) {
-            this.logger = logger;
-        }
     }
 }
