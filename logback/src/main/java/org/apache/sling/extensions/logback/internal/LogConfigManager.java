@@ -19,7 +19,6 @@
 package org.apache.sling.extensions.logback.internal;
 
 import java.io.File;
-import java.util.Collection;
 import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -175,6 +174,15 @@ public class LogConfigManager implements LogbackResetListener{
     }
 
     // ---------- SlingLogPanel support
+
+
+    Map<String, LogWriter> getWriterByPid() {
+        return writerByPid;
+    }
+
+    Map<String, LogConfig> getConfigByPid() {
+        return configByPid;
+    }
 
     LogWriter getLogWriter(String logWriterName) {
         LogWriter lw = writerByFileName.get(logWriterName);

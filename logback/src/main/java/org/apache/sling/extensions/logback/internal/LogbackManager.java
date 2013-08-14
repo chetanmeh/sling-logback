@@ -5,6 +5,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import ch.qos.logback.classic.Level;
@@ -23,8 +24,12 @@ import ch.qos.logback.core.status.StatusListener;
 import ch.qos.logback.core.status.StatusListenerAsList;
 import ch.qos.logback.core.status.StatusUtil;
 import ch.qos.logback.core.util.StatusPrinter;
+import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.Constants;
 import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.framework.ServiceFactory;
+import org.osgi.framework.ServiceRegistration;
 import org.slf4j.LoggerFactory;
 
 public class LogbackManager extends LoggerContextAwareBase {
@@ -52,6 +57,8 @@ public class LogbackManager extends LoggerContextAwareBase {
 
     private final AppenderTracker appenderTracker;
 
+    private final ServiceRegistration panelRegistration;
+
     public LogbackManager(BundleContext bundleContext) throws InvalidSyntaxException {
         setLoggerContext((LoggerContext) LoggerFactory.getILoggerFactory());
         this.rootDir = bundleContext.getProperty("sling.home");
@@ -69,7 +76,39 @@ public class LogbackManager extends LoggerContextAwareBase {
         getLoggerContext().addListener(osgiIntegrationListener);
 
         configure();
+        panelRegistration = registerWebConsolePlugin(bundleContext);
         started = true;
+    }
+
+    public void shutdown() {
+        if(panelRegistration != null){
+            panelRegistration.unregister();
+        }
+
+        appenderTracker.close();
+        getLoggerContext().removeListener(osgiIntegrationListener);
+        logConfigManager.close();
+        getLoggerContext().stop();
+    }
+
+    public void configChanged(){
+        if(!started){
+            return;
+        }
+        if(resetInProgress){
+            configChanged.set(true);
+            addInfo("LoggerContext reset in progress. Marking config changed to true");
+            return;
+        }
+        scheduleConfigReload();
+    }
+
+    public LogConfigManager getLogConfigManager() {
+        return logConfigManager;
+    }
+
+    public AppenderTracker getAppenderTracker() {
+        return appenderTracker;
     }
 
     private void configure() {
@@ -84,7 +123,7 @@ public class LogbackManager extends LoggerContextAwareBase {
         configure(cb);
     }
 
-    public void configure(ConfiguratorCallback cb) {
+    private void configure(ConfiguratorCallback cb) {
         StatusListener statusListener = new StatusListenerAsList();
         if(debug){
             statusListener = new OnConsoleStatusListener();
@@ -111,25 +150,6 @@ public class LogbackManager extends LoggerContextAwareBase {
             getStatusManager().remove(statusListener);
             StatusPrinter.printInCaseOfErrorsOrWarnings(getLoggerContext());
         }
-    }
-
-    public void shutdown() {
-        appenderTracker.close();
-        getLoggerContext().removeListener(osgiIntegrationListener);
-        logConfigManager.close();
-        getLoggerContext().stop();
-    }
-
-    public void configChanged(){
-        if(!started){
-            return;
-        }
-        if(resetInProgress){
-            configChanged.set(true);
-            addInfo("LoggerContext reset in progress. Marking config changed to true");
-            return;
-        }
-        scheduleConfigReload();
     }
 
     private JoranConfigurator createConfigurator(){
@@ -282,6 +302,35 @@ public class LogbackManager extends LoggerContextAwareBase {
         @Override
         protected URL getMainUrl() {
             return getClass().getClassLoader().getResource("logback-empty.xml");
+        }
+    }
+
+    //~ ------------------------------------------------------------------
+    private ServiceRegistration registerWebConsolePlugin(BundleContext context){
+        Properties props = new Properties();
+        props.put(Constants.SERVICE_VENDOR, "Apache Software Foundation");
+        props.put(Constants.SERVICE_DESCRIPTION, "Sling Log Support");
+        props.put("felix.webconsole.label", "slinglogback");
+        props.put("felix.webconsole.title", "Sling Log Support");
+
+        //Registering a ServiceFactory to avoid dependency on Servlet API
+        //on startup
+        return context.registerService("javax.servlet.Servlet", new PluginServiceFactory(), props);
+    }
+
+    private class PluginServiceFactory implements ServiceFactory {
+        private Object instance;
+
+        public Object getService(Bundle bundle, ServiceRegistration registration) {
+            synchronized (this) {
+                if (this.instance == null) {
+                    this.instance = new SlingLogPanel(LogbackManager.this);
+                }
+                return instance;
+            }
+        }
+
+        public void ungetService(Bundle bundle, ServiceRegistration registration, Object service) {
         }
     }
 }
