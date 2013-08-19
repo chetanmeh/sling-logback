@@ -24,6 +24,7 @@ import ch.qos.logback.classic.util.EnvUtil;
 import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.joran.GenericConfigurator;
 import ch.qos.logback.core.joran.event.SaxEvent;
+import ch.qos.logback.core.joran.spi.InterpretationContext;
 import ch.qos.logback.core.joran.spi.JoranException;
 import ch.qos.logback.core.status.OnConsoleStatusListener;
 import ch.qos.logback.core.status.StatusListener;
@@ -122,6 +123,10 @@ public class LogbackManager extends LoggerContextAwareBase {
         return appenderTracker;
     }
 
+    public void addSubsitutionProperties(InterpretationContext ic){
+        ic.addSubstitutionProperty("sling.home", rootDir);
+    }
+
     private void configure() {
         ConfiguratorCallback cb = new DefaultCallback();
 
@@ -213,6 +218,7 @@ public class LogbackManager extends LoggerContextAwareBase {
         }
 
         public void onReset(LoggerContext context) {
+            context.putObject(LogbackManager.class.getName(),LogbackManager.this);
             for(LogbackResetListener l : resetListeners){
                 l.onReset(context);
             }
@@ -233,7 +239,7 @@ public class LogbackManager extends LoggerContextAwareBase {
         @Override
         protected void buildInterpreter() {
             super.buildInterpreter();
-            interpreter.getInterpretationContext().addSubstitutionProperty("sling.home", rootDir);
+            addSubsitutionProperties(interpreter.getInterpretationContext());
         }
     }
 
@@ -338,6 +344,7 @@ public class LogbackManager extends LoggerContextAwareBase {
     }
 
     public class LoggerStateContext {
+        final LoggerContext loggerContext = getLoggerContext();
         final List<Logger> allLoggers;
         /**
          * List of logger which have explicitly defined level or appenders set
