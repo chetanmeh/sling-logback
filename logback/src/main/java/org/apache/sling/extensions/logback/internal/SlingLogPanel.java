@@ -20,7 +20,9 @@ package org.apache.sling.extensions.logback.internal;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Iterator;
+import java.util.List;
 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -29,7 +31,11 @@ import javax.servlet.http.HttpServletResponse;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;
+import ch.qos.logback.core.CoreConstants;
 import ch.qos.logback.core.FileAppender;
+import ch.qos.logback.core.helpers.Transform;
+import ch.qos.logback.core.status.Status;
+import ch.qos.logback.core.util.CachingDateFormatter;
 import org.apache.sling.extensions.logback.internal.LogbackManager.LoggerStateContext;
 import org.apache.sling.extensions.logback.internal.util.SlingRollingFileAppender;
 import org.osgi.framework.Constants;
@@ -48,7 +54,11 @@ public class SlingLogPanel extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
 
+    private final CachingDateFormatter SDF = new CachingDateFormatter(
+            "yyyy-MM-dd HH:mm:ss");
+
     private final LogbackManager logbackManager;
+
 
     public SlingLogPanel(final LogbackManager logbackManager) {
         this.logbackManager = logbackManager;
@@ -61,9 +71,15 @@ public class SlingLogPanel extends HttpServlet {
         final PrintWriter pw = resp.getWriter();
 
         final String consoleAppRoot = (String) req.getAttribute("felix.webconsole.appRoot");
-        final String cfgColTitle = (consoleAppRoot == null) ? "PID" : "Configuration";
 
         final LoggerStateContext ctx = logbackManager.determineLoggerState();
+        appendLoggerStatus(pw, ctx);
+        appendLoggerData(pw, ctx);
+        addAppenderData(pw, consoleAppRoot, ctx);
+        appendLogbackStatus(pw,ctx);
+    }
+
+    private void appendLoggerStatus(PrintWriter pw, LoggerStateContext ctx) {
         pw.printf(
             "<p class='statline'>Log Service Stats: %d categories, %d configuration(s), %d appenders(s), %d OSGi appenders(s), %d Logback Appenders(s)</p>%n",
                 ctx.getNumberOfLoggers(),
@@ -72,7 +88,9 @@ public class SlingLogPanel extends HttpServlet {
                 ctx.getNumOfDynamicAppenders(),
                 ctx.getNumOfLogbackAppenders()
         );
+    }
 
+    private void appendLoggerData(PrintWriter pw, LoggerStateContext ctx) {
         pw.println("<div class='table'>");
 
         pw.println("<div class='ui-widget-header ui-corner-top buttonGroup'>Logger</div>");
@@ -111,11 +129,12 @@ public class SlingLogPanel extends HttpServlet {
         }
 
 
-
         pw.println("</tbody>");
         pw.println("</table>");
         pw.println("</div>");
+    }
 
+    private void addAppenderData(PrintWriter pw, String consoleAppRoot,LoggerStateContext ctx) {
         pw.println("<div class='table'>");
 
         pw.println("<div class='ui-widget-header ui-corner-top buttonGroup'>Appender</div>");
@@ -125,7 +144,7 @@ public class SlingLogPanel extends HttpServlet {
         pw.println("<thead class='ui-widget-header'>");
         pw.println("<tr>");
         pw.println("<th>Appender</th>");
-        pw.println("<th>" + cfgColTitle + "</th>");
+        pw.println("<th>" + getConfigColTitle(consoleAppRoot) + "</th>");
         pw.println("</tr>");
         pw.println("</thead>");
         pw.println("<tbody class='ui-widget-content'>");
@@ -142,6 +161,43 @@ public class SlingLogPanel extends HttpServlet {
         pw.println("</table>");
         pw.println("</div>");
     }
+
+    private void appendLogbackStatus(PrintWriter pw, LoggerStateContext ctx) {
+        pw.println("<div class='table'>");
+
+        pw.println("<div class='ui-widget-header ui-corner-top buttonGroup'>Logback Status</div>");
+
+        pw.println("<table class='nicetable ui-widget'>");
+
+        pw.println("<thead class='ui-widget-header'>");
+        pw.println("<tr>");
+        pw.println("<th>Date</th>");
+        pw.println("<th>Level</th>");
+        pw.println("<th>Origin</th>");
+        pw.println("<th>Message</th>");
+        pw.println("</tr>");
+        pw.println("</thead>");
+        pw.println("<tbody class='ui-widget-content'>");
+
+        List<Status> statusList = ctx.loggerContext.getStatusManager().getCopyOfStatusList();
+        for (Status s : statusList) {
+            pw.println("<tr>");
+            pw.println("<td class=\"date\">" +  SDF.format(s.getDate()) + "</td>");
+            pw.println("<td class=\"level\">" + statusLevelAsString(s) + "</td>");
+            pw.println("<td>" + abbreviatedOrigin(s) + "</td>");
+            pw.println("<td>" + s.getMessage() + "</td>");
+            pw.println("</tr>");
+
+            if (s.getThrowable() != null) {
+                printThrowable(pw, s.getThrowable());
+            }
+        }
+
+        pw.println("</tbody>");
+        pw.println("</table>");
+        pw.println("</div>");
+    }
+
 
     private String getName(Appender<ILoggingEvent> appender) {
         if(appender instanceof FileAppender){
@@ -171,6 +227,10 @@ public class SlingLogPanel extends HttpServlet {
         }
     }
 
+    private static String getConfigColTitle(String consoleAppRoot){
+        return (consoleAppRoot == null) ? "PID" : "Configuration";
+    }
+
     private static String createUrl(String consoleAppRoot, String subContext, String pid){
         // no recent web console, so just render the pid as the link
         if (consoleAppRoot == null) {
@@ -180,5 +240,44 @@ public class SlingLogPanel extends HttpServlet {
         // recent web console has app root and hence we can use an image
         return "<a href=\""+subContext+"/" + pid + "\"><img src=\"" + consoleAppRoot
                 + "/res/imgs/component_configure.png\" border=\"0\" /></a>";
+    }
+
+    //~------------------------------------------------Status Manager
+
+    private static String statusLevelAsString(Status s) {
+        switch (s.getEffectiveLevel()) {
+            case Status.INFO:
+                return "INFO";
+            case Status.WARN:
+                return "<span class=\"warn\">WARN</span>";
+            case Status.ERROR:
+                return "<span class=\"error\">ERROR</span>";
+        }
+        return null;
+    }
+
+    private static String abbreviatedOrigin(Status s) {
+        Object o = s.getOrigin();
+        if (o == null) {
+            return null;
+        }
+        String fqClassName = o.getClass().getName();
+        int lastIndex = fqClassName.lastIndexOf(CoreConstants.DOT);
+        if (lastIndex != -1) {
+            return fqClassName.substring(lastIndex + 1, fqClassName.length());
+        } else {
+            return fqClassName;
+        }
+    }
+
+    private static void printThrowable(PrintWriter pw, Throwable t) {
+        pw.println("  <tr>");
+        pw.println("    <td colspan=\"4\" class=\"exception\"><pre>");
+        StringWriter sw = new StringWriter();
+        PrintWriter expPw = new PrintWriter(sw);
+        t.printStackTrace(expPw);
+        pw.println(Transform.escapeTags(sw.getBuffer()));
+        pw.println("    </pre></td>");
+        pw.println("  </tr>");
     }
 }
