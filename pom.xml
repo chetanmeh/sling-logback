@@ -37,8 +37,8 @@
     </description>
 
     <modules>
-          <module>launcher</module>
-          <module>logback</module>
-          <module>example</module>
+        <module>logback</module>
+        <module>launcher</module>
+        <module>example</module>
   </modules>
 </project>
