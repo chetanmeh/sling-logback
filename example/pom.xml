@@ -82,6 +82,12 @@
             <version>${logback.version}</version>
             <scope>compile</scope>
         </dependency>
+      <dependency>
+        <groupId>org.apache.sling</groupId>
+        <artifactId>org.apache.sling.extensions.logback</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <scope>compile</scope>
+      </dependency>
 
         <!-- OSGi Libraries not included here -->
         <dependency>
