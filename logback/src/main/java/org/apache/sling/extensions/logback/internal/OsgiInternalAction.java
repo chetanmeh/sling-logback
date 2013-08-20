@@ -62,7 +62,7 @@ public class OsgiInternalAction extends Action {
                 trimHeadAndTail(recorder);
                 consolidatedEventList.addAll(recorder.getSaxEventList());
             } catch (JoranException e) {
-                addError("Error while parsing  "+cp, e);
+                addError("Error while parsing xml obtained from  ["+cp+"]", e);
             } finally {
                 close(is);
             }
