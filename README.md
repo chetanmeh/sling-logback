@@ -37,13 +37,69 @@ Service property `loggers` is a multi value property having following format
 * Level (Optional, default INFO) - Logging level e.g. INFO, WARN etc. See [Logback Manual][1]
 * additivity (Optional, default false) - See Additivity in [Logback Manual][2]
 
+### Logback Config Fragment Support
+
+Logback supports including parts of a configuration file from another file (See [File Inclusion][4]). This module
+extends that support by allowing other bundles to provide config fragments. There are two ways to achieve that
+
+#### Exposing fragment as String objects
+
+If you have the config as string then you can register that String instance as a service with property `logbackConfig`
+set to true. Sling Logback Extension would monitor such objects and pass them to logback
+
+```java
+    Properties props = new Properties();
+    props.setProperty("logbackConfig","true");
+
+    String config = "<included>\n" +
+            "  <appender name=\"FOOFILE\" class=\"ch.qos.logback.core.FileAppender\">\n" +
+            "    <file>${sling.home}/logs/foo.log</file>\n" +
+            "    <encoder>\n" +
+            "      <pattern>%d %-5level %logger{35} - %msg %n</pattern>\n" +
+            "    </encoder>\n" +
+            "  </appender>\n" +
+            "\n" +
+            "  <logger name=\"foo.bar.include\" level=\"INFO\">\n" +
+            "       <appender-ref ref=\"FOOFILE\" />\n" +
+            "  </logger>\n" +
+            "\n" +
+            "</included>";
+
+    registration = context.registerService(String.class.getName(),config,props);
+```
+
+See [ConfigExample][5] for an example. If the config needs to be updated just re-register the service and
+change would be picked up
+
+#### Exposing fragment as ConfigProvider instance
+
+Another way to provide config fragment is by providing an implementation of `org.apache.sling.extensions.logback.ConfigProvider`
+
+```java
+    @Component
+    @Service
+    public class ConfigProviderExample implements ConfigProvider {
+        public InputSource getConfigSource() {
+            return new InputSource(getClass().getClassLoader().getResourceAsStream("foo-config.xml"));
+        }
+    }
+```
+
+See [ConfigProviderExample][6] for an example.
+
+## WebConsole Plugin enhancements
+
+
+
 ## TODO
 
-* Support for providing LogBack config as fragments - It should be possible to add [Logback Fragments][4] 
-  without modifying original file. Instead the fragment config can be provided via OSGi service registry
+* ~~Support for providing LogBack config as fragments - It should be possible to add [Logback Fragments][4]
+  without modifying original file. Instead the fragment config can be provided via OSGi service registry~~
 * ~~WebConsole plugin to expose internal state~~
 * ~~WebConsole Status printer to provide access to the various log files~~
 * Integration testcase
+* ~~Expose LogBack status through WebConsole Plugin~~
+* Support integration with EventAdmin
 
 ## References
 
@@ -60,3 +116,5 @@ Service property `loggers` is a multi value property having following format
 [2]: http://logback.qos.ch/manual/architecture.html#AppendersAndLayouts
 [3]: https://github.com/chetanmeh/sling-logback/blob/master/example/src/main/java/org/apache/sling/examples/logback/FilteringAppender.java
 [4]: http://logback.qos.ch/manual/configuration.html#fileInclusion
+[5]: https://github.com/chetanmeh/sling-logback/blob/master/example/src/main/java/org/apache/sling/examples/logback/ConfigExample.java
+[6]: https://github.com/chetanmeh/sling-logback/blob/master/example/src/main/java/org/apache/sling/examples/logback/ConfigProviderExample.java
