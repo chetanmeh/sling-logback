@@ -90,6 +90,9 @@
                             sun.reflect;resolution:=optional,  
                             *
                         </Import-Package>
+                        <Export-Package>
+                          org.apache.sling.extensions.logback
+                        </Export-Package>
                         <DynamicImport-Package>
                             org.osgi.service.cm;version=1.2,
                             <!-- Required by WebConsole support-->

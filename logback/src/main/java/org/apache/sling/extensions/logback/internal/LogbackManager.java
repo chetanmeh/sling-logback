@@ -227,6 +227,8 @@ public class LogbackManager extends LoggerContextAwareBase {
         }
 
         public void onReset(LoggerContext context) {
+            addInfo("OsgiIntegrationListener : context reset detected. Adding LogManager to context map and firing" +
+                    " listeners");
             context.putObject(LogbackManager.class.getName(),LogbackManager.this);
             for(LogbackResetListener l : resetListeners){
                 l.onReset(context);
@@ -402,13 +404,18 @@ public class LogbackManager extends LoggerContextAwareBase {
     }
 
     private void registerWebConsoleSupport(BundleContext context){
-        final ServiceFactory serviceFactory = new PluginServiceFactory();
+        final String pluginName = "slinglogback";
+        final ServiceFactory serviceFactory = new PluginServiceFactory(pluginName);
 
         Properties pluginProps = new Properties();
         pluginProps.put(Constants.SERVICE_VENDOR, "Apache Software Foundation");
         pluginProps.put(Constants.SERVICE_DESCRIPTION, "Sling Log Support");
-        pluginProps.put("felix.webconsole.label", "slinglogback");
+        pluginProps.put("felix.webconsole.label", pluginName);
         pluginProps.put("felix.webconsole.title", "Sling Log Support");
+        pluginProps.put("felix.webconsole.css", new String[]{
+                "/"+pluginName+"/res/ui/prettify.css",
+                "/"+pluginName+"/res/ui/log.css"
+        });
 
         panelRegistration=  context.registerService("javax.servlet.Servlet",serviceFactory, pluginProps);
 
@@ -426,11 +433,16 @@ public class LogbackManager extends LoggerContextAwareBase {
 
     private class PluginServiceFactory implements ServiceFactory {
         private Object instance;
+        private final String label;
+
+        private PluginServiceFactory(String label) {
+            this.label = label;
+        }
 
         public Object getService(Bundle bundle, ServiceRegistration registration) {
             synchronized (this) {
                 if (this.instance == null) {
-                    this.instance = new SlingLogPanel(LogbackManager.this);
+                    this.instance = new SlingLogPanel(LogbackManager.this,label);
                 }
                 return instance;
             }

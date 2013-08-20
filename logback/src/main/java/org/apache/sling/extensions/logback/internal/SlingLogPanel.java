@@ -21,6 +21,7 @@ package org.apache.sling.extensions.logback.internal;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.URL;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -64,16 +65,19 @@ public class SlingLogPanel extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
 
-    private final CachingDateFormatter SDF = new CachingDateFormatter(
-            "yyyy-MM-dd HH:mm:ss");
+    private final CachingDateFormatter SDF = new CachingDateFormatter("yyyy-MM-dd HH:mm:ss");
 
     private final LogbackManager logbackManager;
 
+    private final String labelRes;
+    private final int labelResLen;
+
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(SlingLogPanel.class);
 
-
-    public SlingLogPanel(final LogbackManager logbackManager) {
+    public SlingLogPanel(final LogbackManager logbackManager, String label) {
         this.logbackManager = logbackManager;
+        this.labelRes = '/' + label + '/';
+        this.labelResLen = labelRes.length() - 1;
     }
 
     @Override
@@ -83,12 +87,13 @@ public class SlingLogPanel extends HttpServlet {
         final PrintWriter pw = resp.getWriter();
 
         final String consoleAppRoot = (String) req.getAttribute("felix.webconsole.appRoot");
+        final String pluginRoot = (String) req.getAttribute("felix.webconsole.pluginRoot");
 
         final LoggerStateContext ctx = logbackManager.determineLoggerState();
         appendLoggerStatus(pw, ctx);
         appendLoggerData(pw, ctx);
         addAppenderData(pw, consoleAppRoot, ctx);
-        appendLogbackFragments(pw, consoleAppRoot);
+        appendLogbackFragments(pw, consoleAppRoot,pluginRoot);
         appendLogbackStatus(pw, ctx);
     }
 
@@ -201,6 +206,7 @@ public class SlingLogPanel extends HttpServlet {
             pw.println("<td>" + s.getMessage() + "</td>");
             pw.println("</tr>");
 
+            //noinspection ThrowableResultOfMethodCallIgnored
             if (s.getThrowable() != null) {
                 printThrowable(pw, s.getThrowable());
             }
@@ -211,7 +217,7 @@ public class SlingLogPanel extends HttpServlet {
         pw.println("</div>");
     }
 
-    private void appendLogbackFragments(PrintWriter pw, String consoleAppRoot) {
+    private void appendLogbackFragments(PrintWriter pw, String consoleAppRoot, String pluginRoot) {
         final Collection<ConfigSourceInfo> configSources =
                 logbackManager.getConfigSourceTracker().getSources();
 
@@ -219,12 +225,11 @@ public class SlingLogPanel extends HttpServlet {
             return;
         }
 
+        pw.printf("<script type=\"text/javascript\" src=\"%s/res/ui/prettify.js\"></script>", pluginRoot);
+        pw.println("<script>$(document).ready(prettyPrint);</script>");
         pw.println("<div class='table'>");
-
         pw.println("<div class='ui-widget-header ui-corner-top buttonGroup'>Logback Config Fragments</div>");
-
         pw.println("<table class='nicetable ui-widget'>");
-
         pw.println("<tbody class='ui-widget-content'>");
 
         for(ConfigSourceInfo ci : configSources){
@@ -236,7 +241,8 @@ public class SlingLogPanel extends HttpServlet {
 
             pw.println("<tr>");
             pw.println("<td>");
-            pw.println("<pre>");
+            //prettify.js adds a border. We eed to remove that
+            pw.println("<pre class=\"prettyprint lang-xml\" style=\"border: 0px\">");
             pw.print(escapeXml(prettyPrint(ci.getConfigProvider().getConfigSource())));
             pw.println("</pre>");
 
@@ -248,6 +254,27 @@ public class SlingLogPanel extends HttpServlet {
         pw.println("</tbody>");
         pw.println("</table>");
         pw.println("</div>");
+    }
+
+    /**
+     * Called internally by {@link AbstractWebConsolePlugin} to load resources.
+     *
+     * This particular implementation depends on the label. As example, if the
+     * plugin is accessed as <code>/system/console/abc</code>, and the plugin
+     * resources are accessed like <code>/system/console/abc/res/logo.gif</code>,
+     * the code here will try load resource <code>/res/logo.gif</code> from the
+     * bundle, providing the plugin.
+     *
+     *
+     * @param path the path to read.
+     * @return the URL of the resource or <code>null</code> if not found.
+     */
+    @SuppressWarnings("UnusedDeclaration")
+    protected URL getResource( String path )
+    {
+        return ( path != null && path.startsWith( labelRes ) ) ? //
+                getClass().getResource( path.substring( labelResLen ) )
+                : null;
     }
 
 
