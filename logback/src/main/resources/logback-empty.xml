@@ -24,4 +24,7 @@
   OSGi config.
   -->
   <jmxConfigurator />
+  <newRule pattern="*/configuration/osgi"
+           actionClass="org.apache.sling.extensions.logback.OsgiAction"/>
+  <osgi/>
 </configuration>
