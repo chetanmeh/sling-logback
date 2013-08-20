@@ -76,7 +76,7 @@ public class SlingLogPanel extends HttpServlet {
         appendLoggerStatus(pw, ctx);
         appendLoggerData(pw, ctx);
         addAppenderData(pw, consoleAppRoot, ctx);
-        appendLogbackStatus(pw,ctx);
+        appendLogbackStatus(pw, ctx);
     }
 
     private void appendLoggerStatus(PrintWriter pw, LoggerStateContext ctx) {
@@ -243,6 +243,7 @@ public class SlingLogPanel extends HttpServlet {
     }
 
     //~------------------------------------------------Status Manager
+    //Based on ch.qos.logback.core.status.ViewStatusMessagesServletBase
 
     private static String statusLevelAsString(Status s) {
         switch (s.getEffectiveLevel()) {
