@@ -18,10 +18,14 @@
  */
 package org.apache.sling.extensions.logback.internal;
 
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -46,6 +50,7 @@ import ch.qos.logback.core.status.Status;
 import ch.qos.logback.core.util.CachingDateFormatter;
 import org.apache.sling.extensions.logback.internal.LogbackManager.LoggerStateContext;
 import org.apache.sling.extensions.logback.internal.util.SlingRollingFileAppender;
+import org.apache.sling.extensions.logback.internal.util.Util;
 import org.osgi.framework.Constants;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.InputSource;
@@ -93,8 +98,16 @@ public class SlingLogPanel extends HttpServlet {
         appendLoggerStatus(pw, ctx);
         appendLoggerData(pw, ctx);
         addAppenderData(pw, consoleAppRoot, ctx);
-        appendLogbackFragments(pw, consoleAppRoot,pluginRoot);
+        appendLogbackMainConfig(pw);
+        appendLogbackFragments(pw, consoleAppRoot);
         appendLogbackStatus(pw, ctx);
+        enablePrettifier(pw,pluginRoot);
+    }
+
+    private void enablePrettifier(PrintWriter pw, String pluginRoot){
+        pw.printf("<script type=\"text/javascript\" src=\"%s/res/ui/prettify.js\"></script>", pluginRoot);
+        pw.println("<script>$(document).ready(prettyPrint);</script>");
+
     }
 
     private void appendLoggerStatus(PrintWriter pw, LoggerStateContext ctx) {
@@ -215,7 +228,54 @@ public class SlingLogPanel extends HttpServlet {
         pw.println("</div>");
     }
 
-    private void appendLogbackFragments(PrintWriter pw, String consoleAppRoot, String pluginRoot) {
+    private void appendLogbackMainConfig(PrintWriter pw) {
+        pw.println("<div class='table'>");
+        pw.println("<div class='ui-widget-header ui-corner-top buttonGroup'>Logback Config</div>");
+        pw.println("<table class='nicetable ui-widget'>");
+        pw.println("<tbody class='ui-widget-content'>");
+
+        File configFile = null;
+        URL url = null;
+        InputSource source = null;
+        try {
+            String msg = "";
+            configFile = logbackManager.getLogConfigManager().getLogbackConfigFile();
+            if (configFile != null) {
+                source = new InputSource(new BufferedInputStream(new FileInputStream(configFile)));
+                msg = "Source " + configFile.getAbsolutePath();
+            } else {
+                url = logbackManager.getDefaultConfig();
+                URLConnection uc = url.openConnection();
+                uc.setDefaultUseCaches(false);
+                source = new InputSource(new BufferedInputStream(uc.getInputStream()));
+                msg = "Source : Default";
+            }
+
+            pw.println("<tr>");
+            pw.println("<td>" + msg + "</td>");
+            pw.println("</tr>");
+
+            pw.println("<tr><td>");
+            String textContent = escapeXml(prettyPrint(source));
+            pw.print("<pre class=\"prettyprint lang-xml\" style=\"border: 0px\">");
+            pw.print(textContent);
+            pw.print("</pre>");
+            pw.println("</td></tr>");
+        } catch (IOException e) {
+            String msg = "Error occurred while opening file [" + configFile + "]";
+            if (url != null) {
+                msg = "Error occurred while opening url [" + url + "]";
+            }
+            log.warn(msg, e);
+        } finally {
+            Util.close(source);
+        }
+        pw.println("</tbody>");
+        pw.println("</table>");
+        pw.println("</div>");
+    }
+
+    private void appendLogbackFragments(PrintWriter pw, String consoleAppRoot) {
         final Collection<ConfigSourceInfo> configSources =
                 logbackManager.getConfigSourceTracker().getSources();
 
@@ -223,8 +283,6 @@ public class SlingLogPanel extends HttpServlet {
             return;
         }
 
-        pw.printf("<script type=\"text/javascript\" src=\"%s/res/ui/prettify.js\"></script>", pluginRoot);
-        pw.println("<script>$(document).ready(prettyPrint);</script>");
         pw.println("<div class='table'>");
         pw.println("<div class='ui-widget-header ui-corner-top buttonGroup'>Logback Config Fragments</div>");
         pw.println("<table class='nicetable ui-widget'>");
@@ -240,13 +298,12 @@ public class SlingLogPanel extends HttpServlet {
             pw.println("<tr>");
             pw.println("<td>");
             //prettify.js adds a border. We eed to remove that
-            pw.println("<pre class=\"prettyprint lang-xml\" style=\"border: 0px\">");
+            pw.print("<pre class=\"prettyprint lang-xml\" style=\"border: 0px\">");
             pw.print(escapeXml(prettyPrint(ci.getConfigProvider().getConfigSource())));
-            pw.println("</pre>");
+            pw.print("</pre>");
 
             pw.println("</td>");
             pw.println("</tr>");
-
         }
 
         pw.println("</tbody>");
@@ -375,6 +432,8 @@ public class SlingLogPanel extends HttpServlet {
             //Catch generic error as panel should still work if xml apis are not
             //resolved
             log.warn("Error occurred while transforming xml", e);
+        }finally{
+            Util.close(is);
         }
 
         return "Source not found";
