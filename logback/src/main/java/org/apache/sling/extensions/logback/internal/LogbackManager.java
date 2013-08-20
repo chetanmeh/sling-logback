@@ -135,6 +135,10 @@ public class LogbackManager extends LoggerContextAwareBase {
         ic.addSubstitutionProperty("sling.home", rootDir);
     }
 
+    public URL getDefaultConfig(){
+        return getClass().getClassLoader().getResource("logback-empty.xml");
+    }
+
     private void configure() {
         ConfiguratorCallback cb = new DefaultCallback();
 
@@ -329,7 +333,7 @@ public class LogbackManager extends LoggerContextAwareBase {
 
         @Override
         protected URL getMainUrl() {
-            return getClass().getClassLoader().getResource("logback-empty.xml");
+            return getDefaultConfig();
         }
     }
 
