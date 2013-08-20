@@ -19,10 +19,14 @@
 
 package org.apache.sling.extensions.logback.internal.util;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+
+import org.xml.sax.InputSource;
 
 public class Util {
 
@@ -54,6 +58,20 @@ public class Util {
         }
 
         return valuesList;
+    }
+
+    public static void close(InputSource is) {
+        Closeable c = is.getByteStream();
+        if(c == null){
+            c = is.getCharacterStream();
+        }
+        if (c != null) {
+            try {
+                c.close();
+            } catch (IOException e) {
+                //Ignore
+            }
+        }
     }
 
 }

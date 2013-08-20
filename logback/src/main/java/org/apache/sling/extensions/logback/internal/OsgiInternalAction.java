@@ -19,8 +19,6 @@
 
 package org.apache.sling.extensions.logback.internal;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -32,6 +30,7 @@ import ch.qos.logback.core.joran.event.SaxEventRecorder;
 import ch.qos.logback.core.joran.spi.ActionException;
 import ch.qos.logback.core.joran.spi.InterpretationContext;
 import ch.qos.logback.core.joran.spi.JoranException;
+import org.apache.sling.extensions.logback.internal.util.Util;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
 
@@ -64,7 +63,7 @@ public class OsgiInternalAction extends Action {
             } catch (JoranException e) {
                 addError("Error while parsing xml obtained from  ["+cp+"]", e);
             } finally {
-                close(is);
+                Util.close(is);
             }
         }
 
@@ -99,19 +98,7 @@ public class OsgiInternalAction extends Action {
         return lm;
     }
 
-    private static void close(InputSource is) {
-        Closeable c = is.getByteStream();
-        if(c == null){
-            c = is.getCharacterStream();
-        }
-        if (c != null) {
-            try {
-                c.close();
-            } catch (IOException e) {
-                //Ignore
-            }
-        }
-    }
+
 
     private static void trimHeadAndTail(SaxEventRecorder recorder) {
         // Let's remove the two <included> events before
