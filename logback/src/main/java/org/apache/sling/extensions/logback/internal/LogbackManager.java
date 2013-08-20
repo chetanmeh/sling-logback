@@ -388,6 +388,10 @@ public class LogbackManager extends LoggerContextAwareBase {
             return getAppenderTracker().getAppenderInfos().size();
         }
 
+        int getNumOfAppenders(){
+            return appenders.size();
+        }
+
         int getNumOfLogbackAppenders(){
             return appenders.size()
                     - getNumofSlingLogWriters()

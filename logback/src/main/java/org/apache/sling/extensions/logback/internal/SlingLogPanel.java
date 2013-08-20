@@ -99,12 +99,10 @@ public class SlingLogPanel extends HttpServlet {
 
     private void appendLoggerStatus(PrintWriter pw, LoggerStateContext ctx) {
         pw.printf(
-            "<p class='statline'>Log Service Stats: %d categories, %d configuration(s), %d appenders(s), %d OSGi appenders(s), %d Logback Appenders(s)</p>%n",
+            "<p class='statline'>Log Service Stats: %d categories, %d appenders(s), %d Dynamic appenders(s)</p>%n",
                 ctx.getNumberOfLoggers(),
-                ctx.getNumofSlingLogConfig(),
-                ctx.getNumofSlingLogWriters(),
-                ctx.getNumOfDynamicAppenders(),
-                ctx.getNumOfLogbackAppenders()
+                ctx.getNumOfAppenders(),
+                ctx.getNumOfDynamicAppenders()
         );
     }
 
