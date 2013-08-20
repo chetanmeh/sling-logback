@@ -88,7 +88,7 @@ public class AppenderTracker extends ServiceTracker implements LogbackResetListe
 
                 //Reset values back to old ones if they match the
                 //ones we modified to
-                if(logger.getLevel().equals(li.level)){
+                if(li.level.equals(logger.getLevel())){
                     logger.setLevel(li.oldLevel);
                 }
 
