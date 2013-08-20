@@ -87,9 +87,17 @@ Another way to provide config fragment is by providing an implementation of `org
 
 See [ConfigProviderExample][6] for an example.
 
-## WebConsole Plugin enhancements
+### WebConsole Plugin enhancements
 
+The web Console Plugin supports following features
 
+* Displays list of loggers which have level or appender configured
+* List of File appenders with location of current active files
+* Content of LogBack config file
+* Content of various Logback config fragment
+* Logback Status logs
+
+![Web Console Plugin](http://chetanmeh.github.com/images/sling-log-support.png)
 
 ## TODO
 
