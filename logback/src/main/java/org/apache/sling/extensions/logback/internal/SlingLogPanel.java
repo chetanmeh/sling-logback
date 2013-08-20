@@ -195,7 +195,7 @@ public class SlingLogPanel extends HttpServlet {
         pw.println("<div class='table'>");
 
         pw.println("<div class='ui-widget-header ui-corner-top buttonGroup'>Logback Status</div>");
-
+        pw.println("<div style='overflow-y:scroll; height:400px'>");
         pw.println("<table class='nicetable ui-widget'>");
 
         pw.println("<thead class='ui-widget-header'>");
@@ -206,7 +206,8 @@ public class SlingLogPanel extends HttpServlet {
         pw.println("<th>Message</th>");
         pw.println("</tr>");
         pw.println("</thead>");
-        pw.println("<tbody class='ui-widget-content'>");
+
+        pw.println("<tbody class='ui-widget-content'  >");
 
         List<Status> statusList = ctx.loggerContext.getStatusManager().getCopyOfStatusList();
         for (Status s : statusList) {
@@ -224,7 +225,9 @@ public class SlingLogPanel extends HttpServlet {
         }
 
         pw.println("</tbody>");
+
         pw.println("</table>");
+        pw.print("</div>");
         pw.println("</div>");
     }
 
