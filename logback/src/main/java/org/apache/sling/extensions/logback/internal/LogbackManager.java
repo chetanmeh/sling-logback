@@ -45,7 +45,6 @@ public class LogbackManager extends LoggerContextAwareBase {
     private final String rootDir;
     private final String contextName = "sling";
     private final LogConfigManager logConfigManager;
-    private final org.slf4j.Logger log = LoggerFactory.getLogger(getClass());
 
     private final List<LogbackResetListener> resetListeners = new ArrayList<LogbackResetListener>();
 
@@ -64,6 +63,8 @@ public class LogbackManager extends LoggerContextAwareBase {
 
     private final AppenderTracker appenderTracker;
 
+    private final ConfigSourceTracker configSourceTracker;
+
     private ServiceRegistration panelRegistration;
     private ServiceRegistration printerRegistration;
 
@@ -73,6 +74,7 @@ public class LogbackManager extends LoggerContextAwareBase {
         this.debug = Boolean.parseBoolean(bundleContext.getProperty(DEBUG));
 
         this.appenderTracker = new AppenderTracker(bundleContext,getLoggerContext());
+        this.configSourceTracker = new ConfigSourceTracker(bundleContext,this);
 
         //TODO Make it configurable
         getLoggerContext().setName(contextName);
@@ -80,6 +82,7 @@ public class LogbackManager extends LoggerContextAwareBase {
 
         resetListeners.add(logConfigManager);
         resetListeners.add(appenderTracker);
+        resetListeners.add(configSourceTracker);
 
         getLoggerContext().addListener(osgiIntegrationListener);
 
@@ -98,6 +101,7 @@ public class LogbackManager extends LoggerContextAwareBase {
         }
 
         appenderTracker.close();
+        configSourceTracker.close();
         getLoggerContext().removeListener(osgiIntegrationListener);
         logConfigManager.close();
         getLoggerContext().stop();
@@ -198,6 +202,7 @@ public class LogbackManager extends LoggerContextAwareBase {
                 addInfo("Config change detected while reset was in progress. Rescheduling new config reset");
                 scheduleConfigReload();
             }else{
+                addInfo("Re configuration done");
                 resetInProgress = false;
             }
         }
