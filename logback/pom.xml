@@ -91,7 +91,11 @@
                             *
                         </Import-Package>
                         <DynamicImport-Package>
-                            org.osgi.service.cm;version=1.2
+                            org.osgi.service.cm;version=1.2,
+                            <!-- Required by WebConsole support-->
+                            javax.xml.transform,
+                            javax.xml.transform.sax,
+                            javax.xml.transform.stream
                         </DynamicImport-Package>
                         <Embed-Dependency>
                             jul-to-slf4j;inline="org/slf4j/bridge/SLF4JBridgeHandler.class",

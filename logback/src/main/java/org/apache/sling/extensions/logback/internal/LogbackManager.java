@@ -127,6 +127,10 @@ public class LogbackManager extends LoggerContextAwareBase {
         return appenderTracker;
     }
 
+    public ConfigSourceTracker getConfigSourceTracker() {
+        return configSourceTracker;
+    }
+
     public void addSubsitutionProperties(InterpretationContext ic){
         ic.addSubstitutionProperty("sling.home", rootDir);
     }

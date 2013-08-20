@@ -100,8 +100,8 @@ public class ConfigSourceTracker extends ServiceTracker implements LogbackResetL
     //~----------------------------------ConfigSourceInfo
 
     public static class ConfigSourceInfo {
-        final ServiceReference reference;
-        final ConfigProvider configProvider;
+        private final ServiceReference reference;
+        private final ConfigProvider configProvider;
 
         public ConfigSourceInfo(ServiceReference reference, ConfigProvider configProvider) {
             this.reference = reference;
@@ -110,6 +110,10 @@ public class ConfigSourceTracker extends ServiceTracker implements LogbackResetL
 
         public ConfigProvider getConfigProvider() {
             return configProvider;
+        }
+
+        public ServiceReference getReference() {
+            return reference;
         }
 
         public String toString(){

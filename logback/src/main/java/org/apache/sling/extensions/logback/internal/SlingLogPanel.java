@@ -21,12 +21,19 @@ package org.apache.sling.extensions.logback.internal;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Source;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.sax.SAXSource;
+import javax.xml.transform.stream.StreamResult;
 
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -39,8 +46,11 @@ import ch.qos.logback.core.util.CachingDateFormatter;
 import org.apache.sling.extensions.logback.internal.LogbackManager.LoggerStateContext;
 import org.apache.sling.extensions.logback.internal.util.SlingRollingFileAppender;
 import org.osgi.framework.Constants;
+import org.slf4j.LoggerFactory;
+import org.xml.sax.InputSource;
 
 import static org.apache.sling.extensions.logback.internal.AppenderTracker.AppenderInfo;
+import static org.apache.sling.extensions.logback.internal.ConfigSourceTracker.ConfigSourceInfo;
 
 
 /**
@@ -59,6 +69,8 @@ public class SlingLogPanel extends HttpServlet {
 
     private final LogbackManager logbackManager;
 
+    private static final org.slf4j.Logger log = LoggerFactory.getLogger(SlingLogPanel.class);
+
 
     public SlingLogPanel(final LogbackManager logbackManager) {
         this.logbackManager = logbackManager;
@@ -76,6 +88,7 @@ public class SlingLogPanel extends HttpServlet {
         appendLoggerStatus(pw, ctx);
         appendLoggerData(pw, ctx);
         addAppenderData(pw, consoleAppRoot, ctx);
+        appendLogbackFragments(pw, consoleAppRoot);
         appendLogbackStatus(pw, ctx);
     }
 
@@ -198,8 +211,47 @@ public class SlingLogPanel extends HttpServlet {
         pw.println("</div>");
     }
 
+    private void appendLogbackFragments(PrintWriter pw, String consoleAppRoot) {
+        final Collection<ConfigSourceInfo> configSources =
+                logbackManager.getConfigSourceTracker().getSources();
 
-    private String getName(Appender<ILoggingEvent> appender) {
+        if(configSources.isEmpty()){
+            return;
+        }
+
+        pw.println("<div class='table'>");
+
+        pw.println("<div class='ui-widget-header ui-corner-top buttonGroup'>Logback Config Fragments</div>");
+
+        pw.println("<table class='nicetable ui-widget'>");
+
+        pw.println("<tbody class='ui-widget-content'>");
+
+        for(ConfigSourceInfo ci : configSources){
+            final String pid = ci.getReference().getProperty(Constants.SERVICE_ID).toString();
+            String url = createUrl(consoleAppRoot,"services",pid);
+            pw.println("<tr>");
+            pw.println("<td>" + url + "</td>");
+            pw.println("</tr>");
+
+            pw.println("<tr>");
+            pw.println("<td>");
+            pw.println("<pre>");
+            pw.print(escapeXml(prettyPrint(ci.getConfigProvider().getConfigSource())));
+            pw.println("</pre>");
+
+            pw.println("</td>");
+            pw.println("</tr>");
+
+        }
+
+        pw.println("</tbody>");
+        pw.println("</table>");
+        pw.println("</div>");
+    }
+
+
+    private static String getName(Appender<ILoggingEvent> appender) {
         if(appender instanceof FileAppender){
             return "File : " + ((FileAppender) appender).getFile();
         }
@@ -207,7 +259,7 @@ public class SlingLogPanel extends HttpServlet {
     }
 
 
-    private String formatPid(final String consoleAppRoot,
+    private static String formatPid(final String consoleAppRoot,
                              final Appender<ILoggingEvent> appender, final LoggerStateContext ctx) {
         if(appender instanceof SlingRollingFileAppender){
             final LogWriter lw = ((SlingRollingFileAppender) appender).getLogWriter();
@@ -280,5 +332,30 @@ public class SlingLogPanel extends HttpServlet {
         pw.println(Transform.escapeTags(sw.getBuffer()));
         pw.println("    </pre></td>");
         pw.println("  </tr>");
+    }
+
+    //~------------------------ ConfigFragment
+
+    private static String prettyPrint(InputSource is) {
+        try {
+            Transformer transformer = TransformerFactory.newInstance().newTransformer();
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+            //initialize StreamResult with File object to save to file
+            StreamResult result = new StreamResult(new StringWriter());
+            Source source = new SAXSource(is);
+            transformer.transform(source, result);
+            return result.getWriter().toString();
+        } catch (Exception e) {
+            //Catch generic error as panel should still work if xml apis are not
+            //resolved
+            log.warn("Error occurred while transforming xml", e);
+        }
+
+        return "Source not found";
+    }
+
+    private static String escapeXml(String xml){
+        return xml.replaceAll("<","&lt;").replaceAll(">","&gt;");
     }
 }
