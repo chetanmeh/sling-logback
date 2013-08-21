@@ -306,13 +306,13 @@ public class LogConfigManager implements LogbackResetListener{
 
             //Null logFileName is treated as Console Appender
             if (logFileName != null && logFileName.trim().length() == 0) {
-                logFileName = null;
+                logFileName = LogWriter.FILE_NAME_CONSOLE;
             }
 
             // if we have a file name, make it absolute and correct for our
             // environment and verify there is no other writer already existing
             // for the same file
-            if (logFileName != null) {
+            if (logFileName != null && !isConsole(logFileName)) {
 
                 // ensure absolute path
                 logFileName = getAbsoluteLogFile(logFileName);
@@ -453,7 +453,7 @@ public class LogConfigManager implements LogbackResetListener{
             }
 
             //FileName being just null means that we want to change the LogLevel
-            if(fileName != null){
+            if(fileName != null && !isConsole(fileName)){
                 fileName = getAbsoluteLogFile(fileName);
             }
 
@@ -598,7 +598,7 @@ public class LogConfigManager implements LogbackResetListener{
      *         object or <code>null</code> if the <code>loggers</code>
      *         object itself is <code>null</code>.
      */
-    private Set<String> toCategoryList(Object loggers) {
+    private static Set<String> toCategoryList(Object loggers) {
 
         // quick exit if there is no configuration
         if (loggers == null) {
@@ -621,5 +621,8 @@ public class LogConfigManager implements LogbackResetListener{
         return loggerNames;
     }
 
+    private static boolean isConsole(String logFileName) {
+        return LogWriter.FILE_NAME_CONSOLE.equals(logFileName);
+    }
 
 }
