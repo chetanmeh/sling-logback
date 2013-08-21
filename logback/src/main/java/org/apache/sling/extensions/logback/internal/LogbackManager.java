@@ -70,7 +70,9 @@ public class LogbackManager extends LoggerContextAwareBase {
 
     public LogbackManager(BundleContext bundleContext) throws InvalidSyntaxException {
         setLoggerContext((LoggerContext) LoggerFactory.getILoggerFactory());
-        this.rootDir = bundleContext.getProperty("sling.home");
+
+        this.rootDir = getRootDir(bundleContext);
+
         this.debug = Boolean.parseBoolean(bundleContext.getProperty(DEBUG));
 
         this.appenderTracker = new AppenderTracker(bundleContext,getLoggerContext());
@@ -197,6 +199,15 @@ public class LogbackManager extends LoggerContextAwareBase {
 
     private void scheduleConfigReload(){
         getLoggerContext().getExecutorService().submit(new LoggerReconfigurer());
+    }
+
+    private String getRootDir(BundleContext bundleContext) {
+        String rootDir = bundleContext.getProperty("sling.home");
+        if(rootDir == null){
+            rootDir = new File(".").getAbsolutePath();
+        }
+        addInfo("Using rootDir as "+rootDir);
+        return rootDir;
     }
 
     private class LoggerReconfigurer implements Runnable {
@@ -380,26 +391,12 @@ public class LogbackManager extends LoggerContextAwareBase {
             return allLoggers.size();
         }
 
-        int getNumofSlingLogConfig(){
-            return getLogConfigManager().getConfigByPid().size();
-        }
-
-        int getNumofSlingLogWriters(){
-            return getLogConfigManager().getWriterByPid().size();
-        }
-
         int getNumOfDynamicAppenders(){
             return getAppenderTracker().getAppenderInfos().size();
         }
 
         int getNumOfAppenders(){
             return appenders.size();
-        }
-
-        int getNumOfLogbackAppenders(){
-            return appenders.size()
-                    - getNumofSlingLogWriters()
-                    - getNumOfDynamicAppenders();
         }
 
         boolean isDynamicAppender(Appender<ILoggingEvent> a){
