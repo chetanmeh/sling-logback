@@ -253,8 +253,10 @@ public class LogConfigManager implements LogbackResetListener{
         }
 
         // update the default log writer and logger configuration
-        updateLogWriter(LogConfigManager.PID, configuration);
-        updateLoggerConfiguration(LogConfigManager.PID, configuration);
+        updateLogWriter(LogConfigManager.PID, configuration,false);
+        updateLoggerConfiguration(LogConfigManager.PID, configuration,false);
+
+        logbackManager.configChanged();
     }
 
 
@@ -295,7 +297,7 @@ public class LogConfigManager implements LogbackResetListener{
      *             the same file as configured for the given log writer or if
      *             configuring the log writer fails.
      */
-    public void updateLogWriter(String pid, Dictionary<?, ?> configuration)
+    public void updateLogWriter(String pid, Dictionary<?, ?> configuration,boolean performRefresh)
             throws ConfigurationException {
 
         if (configuration != null) {
@@ -367,7 +369,9 @@ public class LogConfigManager implements LogbackResetListener{
             }
         }
 
-        logbackManager.configChanged();
+        if(performRefresh){
+            logbackManager.configChanged();
+        }
     }
 
     /**
@@ -410,7 +414,7 @@ public class LogConfigManager implements LogbackResetListener{
      *             properties are not configured for the given configuration.
      */
     public void updateLoggerConfiguration(String pid,
-            Dictionary<?, ?> configuration) throws ConfigurationException {
+            Dictionary<?, ?> configuration, boolean performRefresh) throws ConfigurationException {
 
         if (configuration != null) {
 
@@ -484,7 +488,10 @@ public class LogConfigManager implements LogbackResetListener{
             }
 
         }
-        logbackManager.configChanged();
+
+        if(performRefresh){
+            logbackManager.configChanged();
+        }
     }
 
     // ---------- ManagedService interface -------------------------------------

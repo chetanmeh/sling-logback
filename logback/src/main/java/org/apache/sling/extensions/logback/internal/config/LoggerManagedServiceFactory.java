@@ -32,7 +32,7 @@ class LoggerManagedServiceFactory extends LogConfigurator implements
     public void updated(String pid, @SuppressWarnings("rawtypes") Dictionary configuration)
             throws org.osgi.service.cm.ConfigurationException {
         try {
-            getLogConfigManager().updateLoggerConfiguration(pid, configuration);
+            getLogConfigManager().updateLoggerConfiguration(pid, configuration,true);
         } catch (ConfigurationException ce) {
             throw new org.osgi.service.cm.ConfigurationException(
                 ce.getProperty(), ce.getReason(), ce);
@@ -41,7 +41,7 @@ class LoggerManagedServiceFactory extends LogConfigurator implements
 
     public void deleted(String pid) {
         try {
-            getLogConfigManager().updateLoggerConfiguration(pid, null);
+            getLogConfigManager().updateLoggerConfiguration(pid, null,true);
         } catch (ConfigurationException ce) {
             // not expected
             getLogConfigManager().internalFailure(

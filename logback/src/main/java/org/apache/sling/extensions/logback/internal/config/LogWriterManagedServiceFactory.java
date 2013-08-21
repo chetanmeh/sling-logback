@@ -33,7 +33,7 @@ class LogWriterManagedServiceFactory extends LogConfigurator implements
     public void updated(String pid, Dictionary configuration)
             throws org.osgi.service.cm.ConfigurationException {
         try {
-            getLogConfigManager().updateLogWriter(pid, configuration);
+            getLogConfigManager().updateLogWriter(pid, configuration,true);
         } catch (ConfigurationException ce) {
             throw new org.osgi.service.cm.ConfigurationException(
                 ce.getProperty(), ce.getReason(), ce);
@@ -43,7 +43,7 @@ class LogWriterManagedServiceFactory extends LogConfigurator implements
 
     public void deleted(String pid) {
         try {
-            getLogConfigManager().updateLogWriter(pid, null);
+            getLogConfigManager().updateLogWriter(pid, null,true);
         } catch (ConfigurationException ce) {
             // not expected
             getLogConfigManager().internalFailure(
