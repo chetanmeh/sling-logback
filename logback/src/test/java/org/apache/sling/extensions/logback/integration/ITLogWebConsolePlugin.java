@@ -36,25 +36,22 @@ import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
 
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerClass.class)
-public class ITLogWebConsolePlugin extends LogTestBase
-{
+public class ITLogWebConsolePlugin extends LogTestBase {
 
     @Inject()
-    @Filter(value="(&(felix.webconsole.label=slinglogback)(felix.webconsole.title=*))",timeout = 20000)
+    @Filter(value = "(&(felix.webconsole.label=slinglogback)(felix.webconsole.title=*))", timeout = 10000)
     private Servlet servlet;
 
-    static
-    {
+    static {
         // uncomment to enable debugging of this test class
 //                paxRunnerVmOption = DEBUG_VM_OPTION;
 
     }
 
     @Override
-    protected Option addExtraOptions()
-    {
+    protected Option addExtraOptions() {
         return composite(
-                mavenBundle("org.apache.felix","org.apache.felix.http.bundle").versionAsInProject()
+                mavenBundle("org.apache.felix", "org.apache.felix.http.bundle").versionAsInProject()
         );
     }
 
@@ -63,9 +60,8 @@ public class ITLogWebConsolePlugin extends LogTestBase
      * Checks the presence of plugin servlet if Servlet API is present
      */
     @Test
-    public void testLogPlugin() throws Exception
-    {
-       assertNotNull(servlet);
+    public void testLogPlugin() throws Exception {
+        assertNotNull(servlet);
     }
 
 }

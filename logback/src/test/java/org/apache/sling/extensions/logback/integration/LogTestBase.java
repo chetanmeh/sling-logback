@@ -30,20 +30,14 @@ import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.OptionUtils;
 import org.ops4j.pax.exam.options.DefaultCompositeOption;
 import org.osgi.framework.BundleContext;
-import org.osgi.service.cm.ConfigurationAdmin;
 
-import static org.ops4j.pax.exam.CoreOptions.frameworkProperty;
 import static org.ops4j.pax.exam.CoreOptions.junitBundles;
 import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
 import static org.ops4j.pax.exam.CoreOptions.options;
 
-public abstract class LogTestBase
-{
+public abstract class LogTestBase {
     @Inject
     protected BundleContext bundleContext;
-
-    @Inject
-    protected ConfigurationAdmin ca;
 
     // the name of the system property providing the bundle file to be installed and tested
     protected static final String BUNDLE_JAR_SYS_PROP = "project.bundle.file";
@@ -65,58 +59,50 @@ public abstract class LogTestBase
     protected static String paxRunnerVmOption = null;
 
     @Configuration
-    public Option[] config()
-    {
+    public Option[] config() {
         final String bundleFileName = System.getProperty(BUNDLE_JAR_SYS_PROP,
-            BUNDLE_JAR_DEFAULT);
+                BUNDLE_JAR_DEFAULT);
         final File bundleFile = new File(bundleFileName);
-        if (!bundleFile.canRead())
-        {
+        if (!bundleFile.canRead()) {
             throw new IllegalArgumentException("Cannot read from bundle file "
-                + bundleFileName + " specified in the " + BUNDLE_JAR_SYS_PROP
-                + " system property");
+                    + bundleFileName + " specified in the " + BUNDLE_JAR_SYS_PROP
+                    + " system property");
         }
         Option[] base = options(
-            // the current project (the bundle under test)
-            CoreOptions.bundle(bundleFile.toURI().toString()),
-            mavenBundle("org.ops4j.pax.tinybundles", "tinybundles").versionAsInProject(),
-            mavenBundle( "org.apache.felix", "org.apache.felix.configadmin").versionAsInProject(),
-            mavenBundle( "org.slf4j", "slf4j-api").versionAsInProject(),
+                // the current project (the bundle under test)
+                CoreOptions.bundle(bundleFile.toURI().toString()),
+                mavenBundle("org.ops4j.pax.tinybundles", "tinybundles").versionAsInProject(),
+                mavenBundle("org.slf4j", "slf4j-api").versionAsInProject(),
 
-            frameworkProperty("osgi.clean").value("true"),
-            junitBundles(),
-
-            addCodeCoverageOption(),
-            addExtraOptions());
-        final Option vmOption = (paxRunnerVmOption != null) ? CoreOptions.vmOption(paxRunnerVmOption)  : null;
+                junitBundles(),
+                addCodeCoverageOption(),
+                addExtraOptions());
+        final Option vmOption = (paxRunnerVmOption != null) ? CoreOptions.vmOption(paxRunnerVmOption) : null;
         return OptionUtils.combine(base, vmOption);
     }
 
-    private Option addCodeCoverageOption()
-    {
+    private Option addCodeCoverageOption() {
         String coverageCommand = System.getProperty(COVERAGE_COMMAND);
-        if(coverageCommand != null){
+        if (coverageCommand != null) {
             return CoreOptions.vmOption(coverageCommand);
         }
         return null;
     }
 
+    protected static Option configAdmin() {
+        return mavenBundle("org.apache.felix", "org.apache.felix.configadmin").versionAsInProject();
+    }
 
-    protected Option addExtraOptions()
-    {
+
+    protected Option addExtraOptions() {
         return new DefaultCompositeOption();
     }
 
-    protected static void delay()
-    {
-        try
-        {
+    protected static void delay() {
+        try {
             TimeUnit.MILLISECONDS.sleep(300);
-        }
-        catch ( InterruptedException ie )
-        {
+        } catch (InterruptedException ie) {
             // dont care
         }
     }
-
 }
