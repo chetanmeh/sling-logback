@@ -26,6 +26,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.junit.PaxExam;
 import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerClass;
@@ -42,6 +43,11 @@ public class ITDefaultConfig extends LogTestBase {
         // uncomment to enable debugging of this test class
 //                paxRunnerVmOption = DEBUG_VM_OPTION;
 
+    }
+
+    @Override
+    protected Option addDefaultOptions() {
+        return null; //Disable adding of default option
     }
 
 

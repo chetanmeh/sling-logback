@@ -148,7 +148,6 @@
             <project.bundle.file>${bundle.file.name}</project.bundle.file>
             <project.boot.file>${bundle.file.name}</project.boot.file>
             <coverage.command>${coverage.command}</coverage.command>
-            <work.dir>${bundle.build.dir}/pax</work.dir>
           </systemPropertyVariables>
         </configuration>
       </plugin>

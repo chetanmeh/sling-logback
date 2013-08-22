@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.ops4j.pax.exam.Configuration;
 import org.ops4j.pax.exam.CoreOptions;
 import org.ops4j.pax.exam.Option;
@@ -37,8 +38,10 @@ import static org.ops4j.pax.exam.CoreOptions.junitBundles;
 import static org.ops4j.pax.exam.CoreOptions.keepCaches;
 import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
 import static org.ops4j.pax.exam.CoreOptions.options;
+import static org.ops4j.pax.exam.CoreOptions.systemProperty;
 import static org.ops4j.pax.exam.CoreOptions.systemTimeout;
 import static org.ops4j.pax.exam.CoreOptions.workingDirectory;
+import static org.ops4j.pax.exam.util.PathUtils.getBaseDir;
 
 public abstract class LogTestBase {
     @Inject
@@ -82,12 +85,18 @@ public abstract class LogTestBase {
                 junitBundles(),
                 addCodeCoverageOption(),
                 addDebugOptions(),
-                addExtraOptions());
+                addExtraOptions(),
+                addDefaultOptions()
+        );
+    }
+
+    protected Option addDefaultOptions() {
+        return addSlingHome();
     }
 
     private static Option addDebugOptions() throws IOException {
         if(paxRunnerVmOption != null){
-            String workDir = System.getProperty("work.dir","target/pax");
+            String workDir = FilenameUtils.concat(getBaseDir(),"target/pax");
             File workDirFile = new File(workDir);
             if(workDirFile.exists()){
                 FileUtils.deleteDirectory(workDirFile);
@@ -109,6 +118,12 @@ public abstract class LogTestBase {
         }
         return null;
     }
+
+    private static Option addSlingHome() {
+        String workDirName = FilenameUtils.concat(getBaseDir(), "target/sling");
+        return systemProperty("sling.home").value(workDirName);
+    }
+
 
     protected static Option configAdmin() {
         return mavenBundle("org.apache.felix", "org.apache.felix.configadmin").versionAsInProject();
