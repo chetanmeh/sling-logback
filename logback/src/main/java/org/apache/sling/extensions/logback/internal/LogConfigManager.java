@@ -175,15 +175,6 @@ public class LogConfigManager implements LogbackResetListener{
 
     // ---------- SlingLogPanel support
 
-
-    Map<String, LogWriter> getWriterByPid() {
-        return writerByPid;
-    }
-
-    Map<String, LogConfig> getConfigByPid() {
-        return configByPid;
-    }
-
     LogWriter getLogWriter(String logWriterName) {
         LogWriter lw = writerByFileName.get(logWriterName);
         if(lw == null){
@@ -227,8 +218,9 @@ public class LogConfigManager implements LogbackResetListener{
             for(String category : config.getCategories()){
                 ch.qos.logback.classic.Logger logger = loggerContext.getLogger(category);
                 logger.setLevel(config.getLogLevel());
-
-                logger.addAppender(appender);
+                if(appender != null){
+                    logger.addAppender(appender);
+                }
             }
         }
     }
