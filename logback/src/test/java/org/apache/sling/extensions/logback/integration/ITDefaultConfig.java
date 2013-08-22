@@ -50,7 +50,6 @@ public class ITDefaultConfig extends LogTestBase {
      */
     @Test
     public void testDefaultSettings() throws Exception {
-        delay();
         Logger slf4jLogger = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
         assertTrue("Default Log level should be INFO", slf4jLogger.isInfoEnabled());
 

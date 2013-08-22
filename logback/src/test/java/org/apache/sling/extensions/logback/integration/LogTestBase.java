@@ -102,7 +102,7 @@ public abstract class LogTestBase {
         return null;
     }
 
-    private Option addCodeCoverageOption() {
+    private static Option addCodeCoverageOption() {
         String coverageCommand = System.getProperty(COVERAGE_COMMAND);
         if (coverageCommand != null) {
             return CoreOptions.vmOption(coverageCommand);
