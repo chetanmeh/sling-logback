@@ -9,6 +9,7 @@ Logback based logger for Sling
 * ConfigurationAdmin integration - Logback Config can be enhanced via config obtained from
   OSGi configuration admin
 * Supports Appenders via Whiteboard pattern
+* Support providing Logback config as fragments through OSGi Service Registry
 * WebConsole Plugin and Configuration Printer support
 
 ### Appenders and Whiteboard pattern
