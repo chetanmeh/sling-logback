@@ -10,6 +10,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import ch.qos.logback.classic.Level;
@@ -48,6 +49,8 @@ public class LogbackManager extends LoggerContextAwareBase {
 
     private final List<LogbackResetListener> resetListeners = new ArrayList<LogbackResetListener>();
 
+    private final org.slf4j.Logger log = LoggerFactory.getLogger(getClass());
+
     /**
      * Acts as a bridge between Logback and OSGi
      */
@@ -57,7 +60,7 @@ public class LogbackManager extends LoggerContextAwareBase {
 
     private final boolean started;
 
-    private volatile boolean resetInProgress;
+    private final Semaphore resetLock = new Semaphore(1);
 
     private final AtomicBoolean configChanged = new AtomicBoolean();
 
@@ -113,12 +116,13 @@ public class LogbackManager extends LoggerContextAwareBase {
         if(!started){
             return;
         }
-        if(resetInProgress){
+
+        if(resetLock.tryAcquire()){
+            scheduleConfigReload();
+        }else{
             configChanged.set(true);
             addInfo("LoggerContext reset in progress. Marking config changed to true");
-            return;
         }
-        scheduleConfigReload();
     }
 
     public LogConfigManager getLogConfigManager() {
@@ -213,16 +217,23 @@ public class LogbackManager extends LoggerContextAwareBase {
     private class LoggerReconfigurer implements Runnable {
 
         public void run() {
-            resetInProgress = true;
-            addInfo("Performing configuration");
-            configure();
-            boolean configChanged = LogbackManager.this.configChanged.getAndSet(false);
-            if(configChanged){
-                addInfo("Config change detected while reset was in progress. Rescheduling new config reset");
-                scheduleConfigReload();
-            }else{
-                addInfo("Re configuration done");
-                resetInProgress = false;
+            //TODO Might be better to run a job to monitor refreshRequirement
+            boolean configChanged = false;
+            try{
+                addInfo("Performing configuration");
+                configure();
+                configChanged = LogbackManager.this.configChanged.getAndSet(false);
+                if(configChanged){
+                    scheduleConfigReload();
+                }
+            }catch(Exception e){
+                log.warn("Error occurred while re-configuring logger",e);
+                addError("Error occurred while re-configuring logger",e);
+            }finally{
+                if(!configChanged){
+                    resetLock.release();
+                    addInfo("Re configuration done");
+                }
             }
         }
     }
