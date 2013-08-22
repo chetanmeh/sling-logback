@@ -24,7 +24,6 @@ import java.util.Iterator;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;
-import ch.qos.logback.core.FileAppender;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.junit.PaxExam;
@@ -33,7 +32,6 @@ import org.ops4j.pax.exam.spi.reactors.PerClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(PaxExam.class)
@@ -52,6 +50,7 @@ public class ITDefaultConfig extends LogTestBase {
      */
     @Test
     public void testDefaultSettings() throws Exception {
+        delay();
         Logger slf4jLogger = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
         assertTrue("Default Log level should be INFO", slf4jLogger.isInfoEnabled());
 
@@ -63,16 +62,6 @@ public class ITDefaultConfig extends LogTestBase {
         ch.qos.logback.classic.Logger logger = (ch.qos.logback.classic.Logger) slf4jLogger;
         Iterator<Appender<ILoggingEvent>> itr = logger.iteratorForAppenders();
         assertTrue("One appender should be attached with root logger", itr.hasNext());
-
-        FileAppender<ILoggingEvent> fileAppender = null;
-        while (itr.hasNext()) {
-            Appender<ILoggingEvent> a = itr.next();
-            if (a instanceof FileAppender) {
-                fileAppender = (FileAppender<ILoggingEvent>) a;
-            }
-        }
-
-        assertNotNull("One fileAppender must be attached with Root logger", fileAppender);
     }
 
 }

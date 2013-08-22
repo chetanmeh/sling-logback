@@ -49,6 +49,13 @@
     <logback.version>1.0.13</logback.version>
     <sling.java.version>6</sling.java.version>
     <pax-exam.version>3.0.0</pax-exam.version>
+
+    <bundle.build.dir>
+      ${basedir}/target
+    </bundle.build.dir>
+    <bundle.file.name>
+      ${bundle.build.dir}/${project.build.finalName}.jar
+    </bundle.file.name>
   </properties>
 
   <build>
@@ -141,6 +148,7 @@
             <project.bundle.file>${bundle.file.name}</project.bundle.file>
             <project.boot.file>${bundle.file.name}</project.boot.file>
             <coverage.command>${coverage.command}</coverage.command>
+            <work.dir>${bundle.build.dir}/pax</work.dir>
           </systemPropertyVariables>
         </configuration>
       </plugin>
@@ -263,6 +271,12 @@
       <version>2.2.0</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.4</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <profiles>
@@ -326,6 +340,8 @@
                   <goal>check</goal>
                 </goals>
                 <configuration>
+                  <!-- Disabling the check for now -->
+                  <skip>true</skip>
                   <check>
                     <classRatio>100</classRatio>
                     <instructionRatio>90</instructionRatio>

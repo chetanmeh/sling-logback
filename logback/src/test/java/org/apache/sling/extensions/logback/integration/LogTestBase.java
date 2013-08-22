@@ -20,20 +20,25 @@
 package org.apache.sling.extensions.logback.integration;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 
+import org.apache.commons.io.FileUtils;
 import org.ops4j.pax.exam.Configuration;
 import org.ops4j.pax.exam.CoreOptions;
 import org.ops4j.pax.exam.Option;
-import org.ops4j.pax.exam.OptionUtils;
 import org.ops4j.pax.exam.options.DefaultCompositeOption;
 import org.osgi.framework.BundleContext;
 
+import static org.ops4j.pax.exam.CoreOptions.composite;
 import static org.ops4j.pax.exam.CoreOptions.junitBundles;
+import static org.ops4j.pax.exam.CoreOptions.keepCaches;
 import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
 import static org.ops4j.pax.exam.CoreOptions.options;
+import static org.ops4j.pax.exam.CoreOptions.systemTimeout;
+import static org.ops4j.pax.exam.CoreOptions.workingDirectory;
 
 public abstract class LogTestBase {
     @Inject
@@ -59,7 +64,7 @@ public abstract class LogTestBase {
     protected static String paxRunnerVmOption = null;
 
     @Configuration
-    public Option[] config() {
+    public Option[] config() throws IOException {
         final String bundleFileName = System.getProperty(BUNDLE_JAR_SYS_PROP,
                 BUNDLE_JAR_DEFAULT);
         final File bundleFile = new File(bundleFileName);
@@ -68,7 +73,7 @@ public abstract class LogTestBase {
                     + bundleFileName + " specified in the " + BUNDLE_JAR_SYS_PROP
                     + " system property");
         }
-        Option[] base = options(
+        return options(
                 // the current project (the bundle under test)
                 CoreOptions.bundle(bundleFile.toURI().toString()),
                 mavenBundle("org.ops4j.pax.tinybundles", "tinybundles").versionAsInProject(),
@@ -76,9 +81,25 @@ public abstract class LogTestBase {
 
                 junitBundles(),
                 addCodeCoverageOption(),
+                addDebugOptions(),
                 addExtraOptions());
-        final Option vmOption = (paxRunnerVmOption != null) ? CoreOptions.vmOption(paxRunnerVmOption) : null;
-        return OptionUtils.combine(base, vmOption);
+    }
+
+    private static Option addDebugOptions() throws IOException {
+        if(paxRunnerVmOption != null){
+            String workDir = System.getProperty("work.dir","target/pax");
+            File workDirFile = new File(workDir);
+            if(workDirFile.exists()){
+                FileUtils.deleteDirectory(workDirFile);
+            }
+            return composite(
+                    CoreOptions.vmOption(paxRunnerVmOption),
+                    keepCaches(),
+                    systemTimeout(TimeUnit.MINUTES.toMillis(10)),
+                    workingDirectory(workDir)
+            );
+        }
+        return null;
     }
 
     private Option addCodeCoverageOption() {
@@ -92,7 +113,6 @@ public abstract class LogTestBase {
     protected static Option configAdmin() {
         return mavenBundle("org.apache.felix", "org.apache.felix.configadmin").versionAsInProject();
     }
-
 
     protected Option addExtraOptions() {
         return new DefaultCompositeOption();
