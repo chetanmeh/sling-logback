@@ -1,6 +1,6 @@
 # Sling Logback Extension
 
-Logback based logger for Sling
+Logback based logger for Sling ([SLING-2024](https://issues.apache.org/jira/browse/SLING-2024))
 
 ## Features
 
