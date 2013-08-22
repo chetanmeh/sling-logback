@@ -205,4 +205,14 @@ public class LogWriter {
         return fileName+pattern;
 
     }
+
+    @Override
+    public String toString() {
+        return "LogWriter{" +
+                "configurationPID='" + configurationPID + '\'' +
+                ", fileName='" + fileName + '\'' +
+                ", logNumber=" + logNumber +
+                ", logRotation='" + logRotation + '\'' +
+                '}';
+    }
 }

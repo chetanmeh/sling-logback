@@ -63,10 +63,6 @@ public class LogConfig {
         return logLevel;
     }
 
-    public String getPattern() {
-        return pattern;
-    }
-
     public String getLogWriterName() {
         return logWriterName;
     }
@@ -76,7 +72,7 @@ public class LogConfig {
     }
 
     public LogWriter getLogWriter(){
-        return logConfigManager.getLogWriter(logWriterName);
+        return logConfigManager.getLogWriter(getLogWriterName());
     }
 
     public PatternLayout createLayout(){
@@ -91,7 +87,7 @@ public class LogConfig {
 
         boolean legacyPattern = false;
         for(String marker : LEGACY_MARKERS){
-            if(logBackPattern.indexOf(marker) != -1){
+            if(logBackPattern.contains(marker)){
                 legacyPattern = true;
                 break;
             }
@@ -109,5 +105,15 @@ public class LogConfig {
         pl.setContext(logConfigManager.getLoggerContext());
         pl.start();
         return pl;
+    }
+
+    @Override
+    public String toString() {
+        return "LogConfig{" +
+                "configPid='" + configPid + '\'' +
+                ", categories=" + categories +
+                ", logLevel=" + logLevel +
+                ", logWriterName='" + logWriterName + '\'' +
+                '}';
     }
 }
