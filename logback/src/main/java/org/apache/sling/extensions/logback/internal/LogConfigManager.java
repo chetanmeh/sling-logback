@@ -42,7 +42,7 @@ import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LogConfigManager implements LogbackResetListener{
+public class LogConfigManager implements LogbackResetListener, LogConfig.LogWriterProvider{
 
     public static final String LOG_LEVEL = "org.apache.sling.commons.log.level";
 
@@ -175,16 +175,12 @@ public class LogConfigManager implements LogbackResetListener{
 
     // ---------- SlingLogPanel support
 
-    LogWriter getLogWriter(String logWriterName) {
+    public LogWriter getLogWriter(String logWriterName) {
         LogWriter lw = writerByFileName.get(logWriterName);
         if(lw == null){
             lw = createImplicitWriter(logWriterName);
         }
         return lw;
-    }
-
-    LoggerContext getLoggerContext(){
-        return loggerContext;
     }
 
     public File getLogbackConfigFile() {
@@ -454,7 +450,7 @@ public class LogConfigManager implements LogbackResetListener{
             }
 
             // create or modify existing configuration object
-            LogConfig newConfig = new LogConfig(this, pattern, categories, logLevel, fileName, pid);
+            LogConfig newConfig = new LogConfig(this, pattern, categories, logLevel, fileName, pid, loggerContext);
             LogConfig oldConfig = configByPid.get(pid);
             if(oldConfig != null){
                 configByCategory.keySet().removeAll(oldConfig.getCategories());

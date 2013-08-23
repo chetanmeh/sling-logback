@@ -24,6 +24,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.PatternLayout;
 
 public class LogConfig {
@@ -39,16 +40,20 @@ public class LogConfig {
 
     private final String logWriterName;
 
-    private final LogConfigManager logConfigManager;
+    private final LogWriterProvider logWriterProvider;
 
-    LogConfig(LogConfigManager logConfigManager, final String pattern,
-              Set<String> categories, Level logLevel, String logWriterName, String configPid) {
-        this.logConfigManager = logConfigManager;
+    private final LoggerContext loggerContext;
+
+    LogConfig(LogWriterProvider logWriterProvider, final String pattern,
+              Set<String> categories, Level logLevel, String logWriterName,
+              String configPid, LoggerContext loggerContext) {
+        this.logWriterProvider = logWriterProvider;
         this.configPid = configPid;
         this.pattern = pattern;
         this.categories = categories;
         this.logLevel = logLevel;
         this.logWriterName = logWriterName;
+        this.loggerContext = loggerContext;
     }
 
     public String getConfigPid() {
@@ -72,7 +77,7 @@ public class LogConfig {
     }
 
     public LogWriter getLogWriter(){
-        return logConfigManager.getLogWriter(getLogWriterName());
+        return logWriterProvider.getLogWriter(getLogWriterName());
     }
 
     public PatternLayout createLayout(){
@@ -102,7 +107,7 @@ public class LogConfig {
         PatternLayout pl = new PatternLayout();
         pl.setPattern(logBackPattern);
         pl.setOutputPatternAsHeader(false);
-        pl.setContext(logConfigManager.getLoggerContext());
+        pl.setContext(loggerContext);
         pl.start();
         return pl;
     }
@@ -116,4 +121,9 @@ public class LogConfig {
                 ", logWriterName='" + logWriterName + '\'' +
                 '}';
     }
+
+    public static interface LogWriterProvider {
+        LogWriter getLogWriter(String writerName);
+    }
+
 }
