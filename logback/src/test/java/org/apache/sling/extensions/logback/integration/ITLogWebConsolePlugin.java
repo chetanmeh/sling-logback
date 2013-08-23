@@ -31,8 +31,6 @@ import org.ops4j.pax.exam.spi.reactors.PerClass;
 import org.ops4j.pax.exam.util.Filter;
 
 import static org.junit.Assert.assertNotNull;
-import static org.ops4j.pax.exam.CoreOptions.composite;
-import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
 
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerClass.class)
@@ -50,9 +48,7 @@ public class ITLogWebConsolePlugin extends LogTestBase {
 
     @Override
     protected Option addExtraOptions() {
-        return composite(
-                mavenBundle("org.apache.felix", "org.apache.felix.http.bundle").versionAsInProject()
-        );
+        return webSupport();
     }
 
 

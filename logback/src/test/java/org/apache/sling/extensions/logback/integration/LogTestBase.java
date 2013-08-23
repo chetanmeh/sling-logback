@@ -66,6 +66,11 @@ public abstract class LogTestBase {
     // method include it when starting the OSGi framework JVM
     protected static String paxRunnerVmOption = null;
 
+    //Name of the property for port of server
+    public static final String HTTP_PORT_PROP = "http.port";
+
+    protected static String DEFAULT_PORT = "8080";
+
     @Configuration
     public Option[] config() throws IOException {
         final String bundleFileName = System.getProperty(BUNDLE_JAR_SYS_PROP,
@@ -81,13 +86,19 @@ public abstract class LogTestBase {
                 CoreOptions.bundle(bundleFile.toURI().toString()),
                 mavenBundle("org.ops4j.pax.tinybundles", "tinybundles").versionAsInProject(),
                 mavenBundle("org.slf4j", "slf4j-api").versionAsInProject(),
-
-                junitBundles(),
+                addPaxExamSpecificOptions(),
                 addCodeCoverageOption(),
                 addDebugOptions(),
                 addExtraOptions(),
                 addDefaultOptions()
         );
+    }
+
+    protected Option addPaxExamSpecificOptions(){
+         return composite(
+                 junitBundles(),
+                 systemProperty("pax.exam.osgi.unresolved.fail").value("fail")
+         );
     }
 
     protected Option addDefaultOptions() {
@@ -129,6 +140,13 @@ public abstract class LogTestBase {
         return mavenBundle("org.apache.felix", "org.apache.felix.configadmin").versionAsInProject();
     }
 
+    protected static Option webSupport() {
+        return composite(
+                mavenBundle("org.apache.felix", "org.apache.felix.http.bundle").versionAsInProject(),
+                systemProperty("org.osgi.service.http.port").value(getServerPort())
+        );
+    }
+
     protected Option addExtraOptions() {
         return new DefaultCompositeOption();
     }
@@ -139,5 +157,10 @@ public abstract class LogTestBase {
         } catch (InterruptedException ie) {
             // dont care
         }
+    }
+
+    protected static String getServerPort()
+    {
+        return System.getProperty(HTTP_PORT_PROP, DEFAULT_PORT);
     }
 }
