@@ -81,6 +81,14 @@ public class LogConfig {
     }
 
     public PatternLayout createLayout(){
+        //The java.util.MessageFormat pattern to use for formatting log messages with the root logger.
+        // This is a java.util.MessageFormat pattern supporting up to six arguments:
+        // {0} The timestamp of type java.util.Date,
+        // {1} the log marker,
+        // {2} the name of the current thread,
+        // {3} the name of the logger,
+        // {4} the debug level and
+        // {5} the actual debug message
         Pattern date = Pattern.compile("\\{0,date,(.+?)\\}");
         Matcher m = date.matcher(pattern);
         String logBackPattern = pattern;
@@ -99,7 +107,8 @@ public class LogConfig {
         }
 
         if(legacyPattern){
-            //Convert patterns like %d{dd.MM.yyyy HH:mm:ss.SSS} *%level* [%thread] %logger %msg%n
+            //Default {0,date,dd.MM.yyyy HH:mm:ss.SSS} *{4}* [{2}] {3} {5}
+            //Convert patterns to  %d{dd.MM.yyyy HH:mm:ss.SSS} *%level* [%thread] %logger %msg%n
             logBackPattern = MessageFormat.format(logBackPattern, "zero", "%marker", "%thread", "%logger", "%level",
                 "%message") + "%n";
         }
