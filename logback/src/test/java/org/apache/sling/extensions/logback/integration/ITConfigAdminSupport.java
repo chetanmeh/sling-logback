@@ -19,15 +19,16 @@
 
 package org.apache.sling.extensions.logback.integration;
 
+import java.io.File;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;
+import org.apache.commons.io.FilenameUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Option;
@@ -40,8 +41,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.ops4j.pax.exam.CoreOptions.composite;
+import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
 
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerClass.class)
@@ -86,7 +89,8 @@ public class ITConfigAdminSupport extends LogTestBase {
     @Override
     protected Option addExtraOptions() {
         return composite(
-                configAdmin()
+                configAdmin(),
+                mavenBundle("commons-io", "commons-io").versionAsInProject()
         );
     }
 
@@ -96,7 +100,7 @@ public class ITConfigAdminSupport extends LogTestBase {
         //Set log level to debug for foo1.bar
         Configuration config = ca.createFactoryConfiguration(FACTORY_PID_CONFIGS, null);
         Dictionary<String, Object> p = new Hashtable<String, Object>();
-        p.put(LOG_LOGGERS, new String[] {"foo1.bar"});
+        p.put(LOG_LOGGERS, new String[]{"foo1.bar"});
         p.put(LOG_LEVEL, "DEBUG");
         config.update(p);
 
@@ -135,5 +139,21 @@ public class ITConfigAdminSupport extends LogTestBase {
 
         assertTrue(LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME).isInfoEnabled());
         assertFalse(LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME).isDebugEnabled());
+    }
+
+    @Test
+    public void testExternalConfig() throws Exception {
+        Configuration config = ca.getConfiguration(PID, null);
+        Dictionary<String, Object> p = new Hashtable<String, Object>();
+        p.put(LOG_LEVEL, "DEBUG");
+        p.put(LOGBACK_FILE, FilenameUtils.concat(new File(".").getAbsolutePath(),
+                "src/test/resources/test1-external-config.xml"));
+        config.update(p);
+
+        delay();
+
+        ch.qos.logback.classic.Logger rootLogger =
+                (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+        assertNotNull(rootLogger.getAppender("FILE"));
     }
 }
