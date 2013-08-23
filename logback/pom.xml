@@ -415,6 +415,14 @@
                   <propertyName>coverage.command</propertyName>
                 </configuration>
               </execution>
+              <!-- Default to setup argLine required by surefire -->
+              <execution>
+                <id>prepare-agent-surefire</id>
+                <phase>test-compile</phase>
+                <goals>
+                  <goal>prepare-agent</goal>
+                </goals>
+              </execution>
               <execution>
                 <id>report</id>
                 <phase>post-integration-test</phase>
