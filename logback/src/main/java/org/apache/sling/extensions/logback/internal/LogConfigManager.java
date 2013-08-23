@@ -309,7 +309,7 @@ public class LogConfigManager implements LogbackResetListener{
             if (logFileName != null && !isConsole(logFileName)) {
 
                 // ensure absolute path
-                logFileName = getAbsoluteLogFile(logFileName);
+                logFileName = getAbsoluteFilePath(logFileName);
 
                 // ensure unique configuration of the log writer
                 LogWriter existingWriterByFileName = writerByFileName.get(logFileName);
@@ -450,7 +450,7 @@ public class LogConfigManager implements LogbackResetListener{
 
             //FileName being just null means that we want to change the LogLevel
             if(fileName != null && !isConsole(fileName)){
-                fileName = getAbsoluteLogFile(fileName);
+                fileName = getAbsoluteFilePath(fileName);
             }
 
             // create or modify existing configuration object
@@ -512,10 +512,7 @@ public class LogConfigManager implements LogbackResetListener{
     private void processGlobalConfig(Dictionary<String, String> configuration) {
         String fileName = configuration.get(LOGBACK_FILE);
         if(fileName != null){
-            File file = new File(fileName);
-            if(!file.isAbsolute()){
-                file = new File(rootDir,fileName);
-            }
+            File file = new File(getAbsoluteFilePath(fileName));
             final String path = file.getAbsolutePath();
             if(!file.exists()){
                 log.warn("Logback configuration file [{}]does not exist.", path);
@@ -565,7 +562,7 @@ public class LogConfigManager implements LogbackResetListener{
      * @throws NullPointerException if <code>logFileName</code> is
      *             <code>null</code>.
      */
-    private String getAbsoluteLogFile(String logFileName) {
+    private String getAbsoluteFilePath(String logFileName) {
         // ensure proper separator in the path (esp. for systems, which do
         // not use "slash" as a separator, e.g Windows)
         logFileName = logFileName.replace('/', File.separatorChar);
