@@ -200,7 +200,13 @@ public class LogWriter {
         //Default file name pattern "'.'yyyy-MM-dd"
         //http://sling.apache.org/site/logging.html#Logging-ScheduledRotation
         if(pattern.startsWith("'.'")){
-            pattern = ".%d{" +pattern.substring(3) + "}";  //3 =? '.' length
+            pattern = pattern.substring(3);   //3 = '.' length
+            pattern = ".%d{" +pattern + "}";
+        }
+
+        //Legacy pattern which does not start with .. Just wrap them with %d{}
+        if(!pattern.contains("%d")){
+            pattern = "%d{" +pattern + "}";
         }
         return fileName+pattern;
 
