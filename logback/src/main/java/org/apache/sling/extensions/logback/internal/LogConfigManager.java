@@ -489,7 +489,7 @@ public class LogConfigManager implements LogbackResetListener, LogConfig.LogWrit
         Dictionary<String, String> config = new Hashtable<String, String>();
 
         final String[] props = { LOG_LEVEL, LOG_LEVEL, LOG_FILE,
-                LOG_FILE_NUMBER, LOG_FILE_SIZE, LOG_PATTERN };
+                LOG_FILE_NUMBER, LOG_FILE_SIZE, LOG_PATTERN, LOGBACK_FILE };
         for (String prop : props) {
             String value = bundleContext.getProperty(prop);
             if (value != null) {
