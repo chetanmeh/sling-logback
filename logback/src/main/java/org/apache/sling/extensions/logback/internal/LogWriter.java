@@ -204,8 +204,8 @@ public class LogWriter {
             pattern = ".%d{" +pattern + "}";
         }
 
-        //Legacy pattern which does not start with .. Just wrap them with %d{}
-        if(!pattern.contains("%d")){
+        //Legacy pattern which does not start with '.' Just wrap them with %d{}
+        if(!pattern.contains("%d{")){
             pattern = "%d{" +pattern + "}";
         }
         return fileName+pattern;

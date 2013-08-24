@@ -28,7 +28,6 @@ import ch.qos.logback.core.encoder.Encoder;
 import ch.qos.logback.core.rolling.FixedWindowRollingPolicy;
 import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
 import ch.qos.logback.core.rolling.TimeBasedRollingPolicy;
-import junit.framework.AssertionFailedError;
 import org.apache.commons.io.FileUtils;
 import org.apache.sling.extensions.logback.internal.util.SlingRollingFileAppender;
 import org.junit.Test;
@@ -50,7 +49,7 @@ public class TestLogWriter {
     }
 
     @Test
-    public void  testSizeBasedPattern(){
+    public void  testSizeBasedLegacyPattern(){
         LogWriter lw = new LogWriter("foo",5,"4k");
         Appender<ILoggingEvent> a = createappender(lw);
 
@@ -67,7 +66,7 @@ public class TestLogWriter {
     }
 
     @Test
-    public void  testRotationBasedPattern(){
+    public void  testRotationBasedLegacyPattern(){
         LogWriter lw = new LogWriter("foo",5,"'.'yyyy-MM");
         Appender<ILoggingEvent> a = createappender(lw);
 
@@ -78,8 +77,7 @@ public class TestLogWriter {
 
         TimeBasedRollingPolicy tbrp = (TimeBasedRollingPolicy) sr.getTriggeringPolicy();
         assertEquals(5, tbrp.getMaxHistory());
-
-        //TODO add check for pattern
+        assertEquals("foo.%d{yyyy-MM}",tbrp.getFileNamePattern());
     }
 
 

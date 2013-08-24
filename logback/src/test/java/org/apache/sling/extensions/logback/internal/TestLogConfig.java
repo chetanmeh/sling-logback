@@ -38,6 +38,14 @@ public class TestLogConfig {
         assertEquals(convertedPattern, logConfig.createLayout().getPattern());
     }
 
+    @Test
+    public void testLayoutWithNewPattern(){
+        String convertedPattern = "%d{dd.MM.yyyy HH:mm:ss.SSS} *%level* [%thread] %logger %message%n";
+        LogConfig logConfig =  createConfig(convertedPattern);
+        //Test that valid LogBack pattern are not tampered
+        assertEquals(convertedPattern, logConfig.createLayout().getPattern());
+    }
+
     private LogConfig createConfig(String pattern){
         return new LogConfig(new DummyLogWriterProvider(),
                 pattern,
