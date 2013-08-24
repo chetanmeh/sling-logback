@@ -115,7 +115,7 @@ The web Console Plugin supports following features
 * ~~Integration testcase~~
 * ~~Expose LogBack status through WebConsole Plugin~~
 * ~~Support integration with EventAdmin~~
-* JUL Integration
+* ~~JUL Integration~~
 * Editing Logback config via Web Console
 * Integration with [Felix Inventory Support][7]
 
