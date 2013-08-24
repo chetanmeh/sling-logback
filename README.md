@@ -88,6 +88,12 @@ Another way to provide config fragment is by providing an implementation of `org
 
 See [ConfigProviderExample][6] for an example.
 
+If the config changes then sending an event to `org/apache/sling/commons/log/RESET` would reset the listener
+
+```java
+  eventAdmin.sendEvent(new Event("org/apache/sling/commons/log/RESET",new Properties()));
+```
+
 ### WebConsole Plugin enhancements
 
 The web Console Plugin supports following features
@@ -106,9 +112,12 @@ The web Console Plugin supports following features
   without modifying original file. Instead the fragment config can be provided via OSGi service registry~~
 * ~~WebConsole plugin to expose internal state~~
 * ~~WebConsole Status printer to provide access to the various log files~~
-* Integration testcase
+* ~~Integration testcase~~
 * ~~Expose LogBack status through WebConsole Plugin~~
-* Support integration with EventAdmin
+* ~~Support integration with EventAdmin~~
+* JUL Integration
+* Editing Logback config via Web Console
+* Integration with [Felix Inventory Support][7]
 
 ## References
 
@@ -127,3 +136,4 @@ The web Console Plugin supports following features
 [4]: http://logback.qos.ch/manual/configuration.html#fileInclusion
 [5]: https://github.com/chetanmeh/sling-logback/blob/master/example/src/main/java/org/apache/sling/examples/logback/ConfigExample.java
 [6]: https://github.com/chetanmeh/sling-logback/blob/master/example/src/main/java/org/apache/sling/examples/logback/ConfigProviderExample.java
+[7]: http://felix.apache.org/documentation/subprojects/apache-felix-inventory.html

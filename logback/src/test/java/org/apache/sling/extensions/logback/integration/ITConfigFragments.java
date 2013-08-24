@@ -26,19 +26,25 @@ import javax.inject.Inject;
 import org.apache.sling.extensions.logback.ConfigProvider;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.junit.PaxExam;
 import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerClass;
 import org.osgi.framework.BundleContext;
+import org.osgi.service.event.Event;
+import org.osgi.service.event.EventAdmin;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.InputSource;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
 
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerClass.class)
 public class ITConfigFragments extends LogTestBase {
+    private static final String RESET_EVENT_TOPIC = "org/apache/sling/commons/log/RESET";
 
     @Inject
     private BundleContext bundleContext;
@@ -47,6 +53,14 @@ public class ITConfigFragments extends LogTestBase {
         // uncomment to enable debugging of this test class
 //                paxRunnerVmOption = DEBUG_VM_OPTION;
 
+    }
+
+    @Inject
+    private EventAdmin eventAdmin;
+
+    @Override
+    protected Option addExtraOptions() {
+        return mavenBundle("org.apache.felix", "org.apache.felix.eventadmin").versionAsInProject();
     }
 
 
@@ -82,7 +96,7 @@ public class ITConfigFragments extends LogTestBase {
 
     @Test
     public void testConfigProvider() throws Exception {
-        bundleContext.registerService(ConfigProvider.class.getName(),new ConfigProviderExample(),null);
+        bundleContext.registerService(ConfigProvider.class.getName(),new FileConfigProvider(),null);
 
         delay();
 
@@ -92,9 +106,34 @@ public class ITConfigFragments extends LogTestBase {
         assertNotNull("Appender FOO2FILE must be attached",logger.getAppender("FOO2FILE"));
     }
 
-    private static class ConfigProviderExample implements ConfigProvider {
+    @Test
+    public void testConfigProviderWithListener() throws Exception {
+        FileConfigProvider fcp = new FileConfigProvider();
+        fcp.fileName = "test-reset-config-1.xml";
+        bundleContext.registerService(ConfigProvider.class.getName(),fcp,null);
+
+        delay();
+
+        ch.qos.logback.classic.Logger logger =
+                (ch.qos.logback.classic.Logger) LoggerFactory.getLogger("foo.reset.1");
+        assertTrue(logger.isDebugEnabled());
+        assertNotNull(logger.getAppender("FOO-RESET-FILE-1"));
+
+        fcp.fileName = "test-reset-config-2.xml";
+
+        eventAdmin.sendEvent(new Event(RESET_EVENT_TOPIC,new Properties()));
+
+        delay();
+
+        assertFalse(logger.isDebugEnabled());
+        assertTrue(logger.isInfoEnabled());
+        assertNotNull(logger.getAppender("FOO-RESET-FILE-2"));
+    }
+
+    private static class FileConfigProvider implements ConfigProvider {
+        String fileName = "test-config-provider.xml";
         public InputSource getConfigSource() {
-            return new InputSource(getClass().getClassLoader().getResourceAsStream("foo-config.xml"));
+            return new InputSource(getClass().getClassLoader().getResourceAsStream(fileName));
         }
     }
 }

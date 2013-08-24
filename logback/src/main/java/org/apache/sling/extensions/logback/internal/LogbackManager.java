@@ -43,6 +43,11 @@ import org.slf4j.LoggerFactory;
 public class LogbackManager extends LoggerContextAwareBase {
     private static final String PREFIX  = "org.apache.sling.commons.log";
     private static final String DEBUG = PREFIX + "." + "debug";
+
+    private static final String PLUGIN_URL = "slinglogback";
+    private static final String PRINTER_URL = "slinglogbacklogs";
+    private static final String RESET_EVENT_TOPIC = "org/apache/sling/commons/log/RESET";
+
     private final String rootDir;
     private final String contextName = "sling";
     private final LogConfigManager logConfigManager;
@@ -68,8 +73,7 @@ public class LogbackManager extends LoggerContextAwareBase {
 
     private final ConfigSourceTracker configSourceTracker;
 
-    private ServiceRegistration panelRegistration;
-    private ServiceRegistration printerRegistration;
+    private final List<ServiceRegistration> registrations = new ArrayList<ServiceRegistration>();
 
     public LogbackManager(BundleContext bundleContext) throws InvalidSyntaxException {
         setLoggerContext((LoggerContext) LoggerFactory.getILoggerFactory());
@@ -93,16 +97,13 @@ public class LogbackManager extends LoggerContextAwareBase {
 
         configure();
         registerWebConsoleSupport(bundleContext);
+        registerEventHandler(bundleContext);
         started = true;
     }
 
     public void shutdown() {
-        if(panelRegistration != null){
-            panelRegistration.unregister();
-        }
-
-        if(printerRegistration != null){
-            printerRegistration.unregister();
+        for(ServiceRegistration reg : registrations){
+            reg.unregister();
         }
 
         appenderTracker.close();
@@ -420,31 +421,30 @@ public class LogbackManager extends LoggerContextAwareBase {
     }
 
     private void registerWebConsoleSupport(BundleContext context){
-        final String pluginName = "slinglogback";
-        final ServiceFactory serviceFactory = new PluginServiceFactory(pluginName);
+        final ServiceFactory serviceFactory = new PluginServiceFactory(PLUGIN_URL);
 
         Properties pluginProps = new Properties();
         pluginProps.put(Constants.SERVICE_VENDOR, "Apache Software Foundation");
         pluginProps.put(Constants.SERVICE_DESCRIPTION, "Sling Log Support");
-        pluginProps.put("felix.webconsole.label", pluginName);
+        pluginProps.put("felix.webconsole.label", PLUGIN_URL);
         pluginProps.put("felix.webconsole.title", "Sling Log Support");
         pluginProps.put("felix.webconsole.css", new String[]{
-                "/"+pluginName+"/res/ui/prettify.css",
-                "/"+pluginName+"/res/ui/log.css"
+                "/"+PLUGIN_URL+"/res/ui/prettify.css",
+                "/"+PLUGIN_URL+"/res/ui/log.css"
         });
 
-        panelRegistration=  context.registerService("javax.servlet.Servlet",serviceFactory, pluginProps);
+        registrations.add(context.registerService("javax.servlet.Servlet",serviceFactory, pluginProps));
 
         Properties printerProps = new Properties();
         printerProps.put(Constants.SERVICE_VENDOR, "Apache Software Foundation");
-        printerProps.put(Constants.SERVICE_DESCRIPTION, "Sling Log Support");
-        printerProps.put("felix.webconsole.label", "slinglogbacklogs");
+        printerProps.put(Constants.SERVICE_DESCRIPTION, "Sling Log Configuration Printer");
+        printerProps.put("felix.webconsole.label", PRINTER_URL);
         printerProps.put("felix.webconsole.title", "Log Files");
         printerProps.put("felix.webconsole.configprinter.modes", "always");
 
         //TODO need to see to add support for Inventory Feature
-        printerRegistration=  context.registerService(SlingConfigurationPrinter.class.getName(),
-                new SlingConfigurationPrinter(this), printerProps);
+        registrations.add(context.registerService(SlingConfigurationPrinter.class.getName(),
+                new SlingConfigurationPrinter(this), printerProps));
     }
 
     private class PluginServiceFactory implements ServiceFactory {
@@ -467,4 +467,31 @@ public class LogbackManager extends LoggerContextAwareBase {
         public void ungetService(Bundle bundle, ServiceRegistration registration, Object service) {
         }
     }
+
+    private void registerEventHandler(BundleContext bundleContext) {
+        Properties props = new Properties();
+        props.put(Constants.SERVICE_VENDOR, "Apache Software Foundation");
+        props.put(Constants.SERVICE_DESCRIPTION, "Sling Log Reset Event Handler");
+        props.put("event.topics", new String[]{RESET_EVENT_TOPIC});
+
+        registrations.add(bundleContext.registerService("org.osgi.service.event.EventHandler",
+                new ServiceFactory(){
+            private Object instance;
+
+            @Override
+            public Object getService(Bundle bundle, ServiceRegistration serviceRegistration) {
+                synchronized (this) {
+                    if (this.instance == null) {
+                        this.instance = new ConfigResetRequestHandler(LogbackManager.this);
+                    }
+                    return instance;
+                }
+            }
+
+            @Override
+            public void ungetService(Bundle bundle, ServiceRegistration serviceRegistration, Object o) {
+            }
+        }, props));
+    }
+
 }
