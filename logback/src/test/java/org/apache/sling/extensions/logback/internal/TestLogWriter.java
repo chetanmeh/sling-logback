@@ -50,7 +50,7 @@ public class TestLogWriter {
 
     @Test
     public void  testSizeBasedLegacyPattern(){
-        LogWriter lw = new LogWriter("foo",5,"4k");
+        LogWriter lw = new LogWriter("target/foo",5,"4k");
         Appender<ILoggingEvent> a = createappender(lw);
 
         assertInstanceOf(a, SlingRollingFileAppender.class);
@@ -67,7 +67,7 @@ public class TestLogWriter {
 
     @Test
     public void  testRotationBasedLegacyPattern(){
-        LogWriter lw = new LogWriter("foo",5,"'.'yyyy-MM");
+        LogWriter lw = new LogWriter("target/foo",5,"'.'yyyy-MM");
         Appender<ILoggingEvent> a = createappender(lw);
 
         assertInstanceOf(a, SlingRollingFileAppender.class);
@@ -77,7 +77,7 @@ public class TestLogWriter {
 
         TimeBasedRollingPolicy tbrp = (TimeBasedRollingPolicy) sr.getTriggeringPolicy();
         assertEquals(5, tbrp.getMaxHistory());
-        assertEquals("foo.%d{yyyy-MM}",tbrp.getFileNamePattern());
+        assertEquals("target/foo.%d{yyyy-MM}",tbrp.getFileNamePattern());
     }
 
 
