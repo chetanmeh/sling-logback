@@ -241,7 +241,7 @@ public class SlingLogPanel extends HttpServlet {
         URL url = null;
         InputSource source = null;
         try {
-            String msg = "";
+            String msg;
             configFile = logbackManager.getLogConfigManager().getLogbackConfigFile();
             if (configFile != null) {
                 source = new InputSource(new BufferedInputStream(new FileInputStream(configFile)));
@@ -443,6 +443,6 @@ public class SlingLogPanel extends HttpServlet {
     }
 
     private static String escapeXml(String xml){
-        return xml.replaceAll("<","&lt;").replaceAll(">","&gt;");
+        return xml.replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll("\\$","&#37;");
     }
 }
