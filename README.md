@@ -94,6 +94,24 @@ If the config changes then sending an event to `org/apache/sling/commons/log/RES
   eventAdmin.sendEvent(new Event("org/apache/sling/commons/log/RESET",new Properties()));
 ```
 
+### External Config File
+
+Logback can be configured with an external file. The file name can be specified through
+
+1. OSGi config - Look for config with name `Apache Sling Logging Configuration` and specify the path for
+   config file property
+2. OSGi Framework Properties - Logback supports also looks for file name with property name
+   `org.apache.sling.commons.log.configurationFile`
+
+If you are providing an external config file then to support OSGi integration you would need to add following
+action entry
+
+```xml
+    <newRule pattern="*/configuration/osgi"
+             actionClass="org.apache.sling.extensions.logback.OsgiAction"/>
+    <osgi/>
+```
+
 ### WebConsole Plugin enhancements
 
 The web Console Plugin supports following features
