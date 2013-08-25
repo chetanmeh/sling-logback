@@ -120,6 +120,13 @@ needs to be done
 1. Set framework property `org.apache.sling.commons.log.julenabled` to true
 2. Set the [LevelChangePropagator][8] in LogbackConfig
 
+```xml
+        <configuration>
+            <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator"/>
+            ...
+        </configuration>
+```
+
 See [SLING-2193](https://issues.apache.org/jira/browse/SLING-2193) for details.
 
 ### WebConsole Plugin enhancements
