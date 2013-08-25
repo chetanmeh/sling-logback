@@ -112,6 +112,16 @@ action entry
     <osgi/>
 ```
 
+### Java Util Logging (JUL) Integration
+
+The bundle also support [SLF4JBridgeHandler][9]. To enable JUL integration following two steps
+needs to be done
+
+1. Set framework property `org.apache.sling.commons.log.julenabled` to true
+2. Set the [LevelChangePropagator][8] in LogbackConfig
+
+See [SLING-2193](https://issues.apache.org/jira/browse/SLING-2193) for details.
+
 ### WebConsole Plugin enhancements
 
 The web Console Plugin supports following features
@@ -155,3 +165,5 @@ The web Console Plugin supports following features
 [5]: https://github.com/chetanmeh/sling-logback/blob/master/example/src/main/java/org/apache/sling/examples/logback/ConfigExample.java
 [6]: https://github.com/chetanmeh/sling-logback/blob/master/example/src/main/java/org/apache/sling/examples/logback/ConfigProviderExample.java
 [7]: http://felix.apache.org/documentation/subprojects/apache-felix-inventory.html
+[8]: http://logback.qos.ch/manual/configuration.html#LevelChangePropagator
+[9]: http://www.slf4j.org/api/org/slf4j/bridge/SLF4JBridgeHandler.html
