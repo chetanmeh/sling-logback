@@ -76,6 +76,7 @@ public class LogbackManager extends LoggerContextAwareBase {
     private final List<ServiceRegistration> registrations = new ArrayList<ServiceRegistration>();
 
     public LogbackManager(BundleContext bundleContext) throws InvalidSyntaxException {
+        final long startTime = System.currentTimeMillis();
         setLoggerContext((LoggerContext) LoggerFactory.getILoggerFactory());
 
         this.rootDir = getRootDir(bundleContext);
@@ -98,6 +99,7 @@ public class LogbackManager extends LoggerContextAwareBase {
         configure();
         registerWebConsoleSupport(bundleContext);
         registerEventHandler(bundleContext);
+        StatusPrinter.printInCaseOfErrorsOrWarnings(getLoggerContext(),startTime);
         started = true;
     }
 
@@ -183,7 +185,7 @@ public class LogbackManager extends LoggerContextAwareBase {
             cb.fallbackConfiguration(eventList, createConfigurator(), statusListener);
         } finally {
             getStatusManager().remove(statusListener);
-            StatusPrinter.printInCaseOfErrorsOrWarnings(getLoggerContext());
+            StatusPrinter.printInCaseOfErrorsOrWarnings(getLoggerContext(),threshold);
         }
     }
 
@@ -195,6 +197,7 @@ public class LogbackManager extends LoggerContextAwareBase {
 
     private void resetContext(StatusListener statusListener){
         getLoggerContext().reset();
+
         // after a reset the statusListenerAsList gets removed as a listener
         if(statusListener != null
                 && !getStatusManager().getCopyOfStatusListenerList().contains(statusListener)){
@@ -256,6 +259,11 @@ public class LogbackManager extends LoggerContextAwareBase {
         public void onReset(LoggerContext context) {
             addInfo("OsgiIntegrationListener : context reset detected. Adding LogManager to context map and firing" +
                     " listeners");
+
+            //Attach a console appender to handle logging untill we configure one. This would be
+            //removed in LogConfigManager.reset
+            getLoggerContext().getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).addAppender(logConfigManager.getDefaultAppender());
+
             context.putObject(LogbackManager.class.getName(),LogbackManager.this);
             for(LogbackResetListener l : resetListeners){
                 l.onReset(context);

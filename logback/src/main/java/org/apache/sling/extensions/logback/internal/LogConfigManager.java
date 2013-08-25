@@ -30,9 +30,12 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;
+import ch.qos.logback.core.ConsoleAppender;
 import ch.qos.logback.core.Layout;
+import ch.qos.logback.core.OutputStreamAppender;
 import ch.qos.logback.core.util.ContextUtil;
 import org.apache.sling.extensions.logback.internal.config.ConfigAdminSupport;
 import org.apache.sling.extensions.logback.internal.config.ConfigurationException;
@@ -71,6 +74,8 @@ public class LogConfigManager implements LogbackResetListener, LogConfig.LogWrit
     public static final String FACTORY_PID_WRITERS = PID + ".factory.writer";
 
     public static final String FACTORY_PID_CONFIGS = PID + ".factory.config";
+
+    private static final String DEFAULT_CONSOLE_APPENDER_NAME = "org.apache.sling.commons.log.CONSOLE";
 
     private final LoggerContext loggerContext;
 
@@ -187,6 +192,21 @@ public class LogConfigManager implements LogbackResetListener, LogConfig.LogWrit
         return logbackConfigFile;
     }
 
+    public Appender<ILoggingEvent> getDefaultAppender(){
+        OutputStreamAppender<ILoggingEvent> appender = new ConsoleAppender<ILoggingEvent>();
+        appender.setName(DEFAULT_CONSOLE_APPENDER_NAME);
+        appender.setContext(loggerContext);
+
+        PatternLayoutEncoder encoder = new PatternLayoutEncoder();
+        encoder.setPattern(LOG_PATTERN_DEFAULT);
+        encoder.setContext(loggerContext);
+        encoder.start();
+
+        appender.setEncoder(encoder);
+
+        appender.start();
+        return appender;
+    }
 // ---------- Logback reset listener
 
     public void onReset(LoggerContext context) {
@@ -219,6 +239,9 @@ public class LogConfigManager implements LogbackResetListener, LogConfig.LogWrit
                 }
             }
         }
+
+        //Remove the default console appender that we attached at start of reset
+        context.getLogger(Logger.ROOT_LOGGER_NAME).detachAppender(DEFAULT_CONSOLE_APPENDER_NAME);
     }
 
 
