@@ -75,6 +75,11 @@ public class LogbackManager extends LoggerContextAwareBase {
 
     private final List<ServiceRegistration> registrations = new ArrayList<ServiceRegistration>();
 
+    /**
+     * Time at which reset started. Used as the threshold for logging error messages from status printer
+     */
+    private volatile long resetStartTime;
+
     public LogbackManager(BundleContext bundleContext) throws InvalidSyntaxException {
         final long startTime = System.currentTimeMillis();
         setLoggerContext((LoggerContext) LoggerFactory.getILoggerFactory());
@@ -185,7 +190,7 @@ public class LogbackManager extends LoggerContextAwareBase {
             cb.fallbackConfiguration(eventList, createConfigurator(), statusListener);
         } finally {
             getStatusManager().remove(statusListener);
-            StatusPrinter.printInCaseOfErrorsOrWarnings(getLoggerContext(),threshold);
+            StatusPrinter.printInCaseOfErrorsOrWarnings(getLoggerContext(),resetStartTime);
         }
     }
 
@@ -262,7 +267,12 @@ public class LogbackManager extends LoggerContextAwareBase {
 
             //Attach a console appender to handle logging untill we configure one. This would be
             //removed in LogConfigManager.reset
-            getLoggerContext().getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).addAppender(logConfigManager.getDefaultAppender());
+            getLoggerContext()
+                    .getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME)
+                    .addAppender(logConfigManager.getDefaultAppender());
+
+            //Now record the time of reset with a default appender attached to root logger
+            resetStartTime = System.currentTimeMillis();
 
             context.putObject(LogbackManager.class.getName(),LogbackManager.this);
             for(LogbackResetListener l : resetListeners){

@@ -124,6 +124,12 @@ public class LogConfigManager implements LogbackResetListener, LogConfig.LogWrit
         }else{
             contextUtil.addError(message);
         }
+
+        //log the message to error stream also
+        System.err.println(message);
+        if (t != null) {
+            t.printStackTrace(System.err);
+        }
     }
 
     /**
