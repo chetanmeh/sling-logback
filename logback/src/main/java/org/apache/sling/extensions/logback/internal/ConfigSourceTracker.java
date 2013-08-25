@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 
 import ch.qos.logback.classic.LoggerContext;
 import org.apache.sling.extensions.logback.ConfigProvider;
+import org.apache.sling.extensions.logback.internal.util.XmlUtil;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.Filter;
@@ -115,6 +116,15 @@ public class ConfigSourceTracker extends ServiceTracker implements LogbackResetL
         public ServiceReference getReference() {
             return reference;
         }
+
+        public String getSourceAsString(){
+            return XmlUtil.prettyPrint(getConfigProvider().getConfigSource());
+        }
+
+        public String getSourceAsEscapedString(){
+            return XmlUtil.escapeXml(getSourceAsString());
+        }
+
 
         public String toString(){
             return String.format("Service ID %s",reference.getProperty(Constants.SERVICE_ID));

@@ -33,12 +33,6 @@ import java.util.List;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Source;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.sax.SAXSource;
-import javax.xml.transform.stream.StreamResult;
 
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -51,6 +45,7 @@ import ch.qos.logback.core.util.CachingDateFormatter;
 import org.apache.sling.extensions.logback.internal.LogbackManager.LoggerStateContext;
 import org.apache.sling.extensions.logback.internal.util.SlingRollingFileAppender;
 import org.apache.sling.extensions.logback.internal.util.Util;
+import org.apache.sling.extensions.logback.internal.util.XmlUtil;
 import org.osgi.framework.Constants;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.InputSource;
@@ -259,7 +254,7 @@ public class SlingLogPanel extends HttpServlet {
             pw.println("</tr>");
 
             pw.println("<tr><td>");
-            String textContent = escapeXml(prettyPrint(source));
+            String textContent = XmlUtil.escapeXml(XmlUtil.prettyPrint(source));
             pw.print("<pre class=\"prettyprint lang-xml\" style=\"border: 0px\">");
             pw.print(textContent);
             pw.print("</pre>");
@@ -302,7 +297,7 @@ public class SlingLogPanel extends HttpServlet {
             pw.println("<td>");
             //prettify.js adds a border. We eed to remove that
             pw.print("<pre class=\"prettyprint lang-xml\" style=\"border: 0px\">");
-            pw.print(escapeXml(prettyPrint(ci.getConfigProvider().getConfigSource())));
+            pw.print(ci.getSourceAsEscapedString());
             pw.print("</pre>");
 
             pw.println("</td>");
@@ -417,32 +412,5 @@ public class SlingLogPanel extends HttpServlet {
         pw.println(Transform.escapeTags(sw.getBuffer()));
         pw.println("    </pre></td>");
         pw.println("  </tr>");
-    }
-
-    //~------------------------ ConfigFragment
-
-    private static String prettyPrint(InputSource is) {
-        try {
-            Transformer transformer = TransformerFactory.newInstance().newTransformer();
-            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-            transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
-            //initialize StreamResult with File object to save to file
-            StreamResult result = new StreamResult(new StringWriter());
-            Source source = new SAXSource(is);
-            transformer.transform(source, result);
-            return result.getWriter().toString();
-        } catch (Exception e) {
-            //Catch generic error as panel should still work if xml apis are not
-            //resolved
-            log.warn("Error occurred while transforming xml", e);
-        }finally{
-            Util.close(is);
-        }
-
-        return "Source not found";
-    }
-
-    private static String escapeXml(String xml){
-        return xml.replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll("\\$","&#37;");
     }
 }
