@@ -1,5 +1,5 @@
 Apache Sling MDC Inserting Filter
---------------------------------
+================================
 
 This filter expose various request details as part of [MDC][1]. Currently it exposes following variables
 
@@ -14,6 +14,6 @@ This filter expose various request details as part of [MDC][1]. Currently it exp
 
 The filter also allow configuration to extract data from request cookie, header and parameters. Look for
 configuration with name 'Apache Sling Logging MDC Inserting Filter' for details on specifying header, cookie,
-param names
+param names.
 
 [1] http://www.slf4j.org/manual.html#mdc
