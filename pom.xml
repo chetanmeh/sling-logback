@@ -40,5 +40,6 @@
         <module>logback</module>
         <module>launcher</module>
         <module>example</module>
+        <module>mdc</module>
   </modules>
 </project>
