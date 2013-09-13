@@ -12,9 +12,65 @@ Logback based logger for Sling ([SLING-2024](https://issues.apache.org/jira/brow
 * Support providing Logback config as fragments through OSGi Service Registry
 * WebConsole Plugin and Configuration Printer support
 
+### Logback Filter Support
+
+Its possible to register [Logback Filters][10] as OSGi services.
+
+#### Registering TurboFilters
+
+TurboFilter operate globally and invoked for every Logback call. The bundle just need to register a
+service  against `ch.qos.logback.classic.turbo.TurboFilter` class
+
+```java
+    import import ch.qos.logback.classic.turbo.MatchingFilter;
+
+    SimpleTurboFilter stf = new SimpleTurboFilter();
+    ServiceRegistration sr  = bundleContext.registerService(TurboFilter.class.getName(), stf, null);
+
+    private static class SimpleTurboFilter extends MatchingFilter {
+        @Override
+        public FilterReply decide(Marker marker, Logger logger, Level level, String format,
+         Object[] params, Throwable t) {
+            if(logger.getName().equals("turbofilter.foo.bar")){
+                    return FilterReply.DENY;
+            }
+            return FilterReply.NEUTRAL;
+        }
+    }
+```
+
+As these filters are invoked for every call they must not take much time to execute
+
+#### Registering Filters
+
+Logback Filters are attached to appenders and are used to determine if any LoggingEvent needs to
+be passed to the appender. When registering a filter the bundle needs to configure a service property
+`appenders` which refers to list of appender names to which the Filter must be attached
+
+```java
+    import ch.qos.logback.core.filter.Filter;
+
+    SimpleFilter stf = new SimpleFilter();
+    Dictionary<String, Object> props = new Hashtable<String, Object>();
+    props.put("appenders", "TestAppender");
+    ServiceRegistration sr  = bundleContext.registerService(Filter.class.getName(), stf, props);
+
+    private static class SimpleFilter extends Filter<ILoggingEvent> {
+
+        @Override
+        public FilterReply decide(ILoggingEvent event) {
+            if(event.getLoggerName().equals("filter.foo.bar")){
+                return FilterReply.DENY;
+            }
+            return FilterReply.NEUTRAL;
+        }
+    }
+
+```
+
 ### Appenders and Whiteboard pattern
 
-The whiteboard suppoert simplifies the task of registering appenders with loggers. An appender
+The whiteboard support simplifies the task of registering appenders with loggers. An appender
 can be  registered by exporting it as a service. The whiteboard implementation detects all
 `ch.qos.logback.core.Appender` with the right service properties.
 
@@ -129,6 +185,39 @@ needs to be done
 
 See [SLING-2193](https://issues.apache.org/jira/browse/SLING-2193) for details.
 
+### Configuring OSGi based appenders in Logback Config
+
+So far Sling used to configure the appenders based on OSGi config. That mode only provide a very limited
+set to configuration options. To make use of other Logback features you can override the OSGi config
+from withing the Logback config file. OSGi config based appenders are named based on the file name
+
+For example for following OSGi config
+
+```
+org.apache.sling.commons.log.file="logs/error.log"
+org.apache.sling.commons.log.level="info"
+org.apache.sling.commons.log.file.size="'.'yyyy-MM-dd"
+org.apache.sling.commons.log.file.number=I"7"
+org.apache.sling.commons.log.pattern="{0,date,dd.MM.yyyy HH:mm:ss.SSS} *{4}* [{2}] {3} {5}"
+```
+
+The Logback appender would be named as `logs/error.log`. To extend/override the config in Logback config
+create an appender with name `logs/error.log`
+
+```
+   <appender name="/logs/error.log" class="ch.qos.logback.core.FileAppender">
+    <file>${sling.home}/logs/error.log</file>
+    <encoder>
+      <pattern>%d %-5level %X{sling.userId:-NA} [%thread] %logger{30} %marker- %msg %n</pattern>
+      <immediateFlush>true</immediateFlush>
+    </encoder>
+  </appender>
+
+```
+
+In this case then Log module would create appender based on Logback config instead of OSGi config. This can
+be used to move the application from OSGi based config to Logback based config easily
+
 ### WebConsole Plugin enhancements
 
 The web Console Plugin supports following features
@@ -151,6 +240,7 @@ The web Console Plugin supports following features
 * ~~Expose LogBack status through WebConsole Plugin~~
 * ~~Support integration with EventAdmin~~
 * ~~JUL Integration~~
+* ~~Logback Filters as OSGi Services~~
 * Editing Logback config via Web Console
 * Integration with [Felix Inventory Support][7]
 
@@ -174,3 +264,4 @@ The web Console Plugin supports following features
 [7]: http://felix.apache.org/documentation/subprojects/apache-felix-inventory.html
 [8]: http://logback.qos.ch/manual/configuration.html#LevelChangePropagator
 [9]: http://www.slf4j.org/api/org/slf4j/bridge/SLF4JBridgeHandler.html
+[10]: http://logback.qos.ch/manual/filters.html
