@@ -8,9 +8,10 @@ Logback based logger for Sling ([SLING-2024](https://issues.apache.org/jira/brow
 * LogBack configuration can be provided via Logback config xml
 * ConfigurationAdmin integration - Logback Config can be enhanced via config obtained from
   OSGi configuration admin
-* Supports Appenders via Whiteboard pattern
+* Supports Appenders registered as OSGi Services
+* Supports Filters and TurboFilters registered as OSGi Services
 * Support providing Logback config as fragments through OSGi Service Registry
-* WebConsole Plugin and Configuration Printer support
+* FEature rich WebConsole Plugin and Configuration Printer support
 
 ### Logback Filter Support
 
